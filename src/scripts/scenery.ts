@@ -147,7 +147,27 @@ function setActive(index: number): void {
   loadStop(index);
 }
 
-function onDaylightChanged(): void {
+let switchToken = 0;
+
+// Load the active stop's photo for the new daylight before flipping, so the switch never
+// flashes the bare wash; then crossfade the whole page where view transitions exist.
+async function onDaylightChanged(): Promise<void> {
+  const token = ++switchToken;
+  const img = mode === "off" ? null : imgFor(activeIndex, resolvedVariant(activeIndex));
+  if (img && !img.classList.contains("is-loaded")) {
+    ensureLoading(img);
+    await Promise.race([img.decode().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 2500))]);
+    if (token !== switchToken) return;
+  }
+  const doc = document as Document & { startViewTransition?: (update: () => void) => unknown };
+  if (doc.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    doc.startViewTransition(() => flipDaylight());
+  } else {
+    flipDaylight();
+  }
+}
+
+function flipDaylight(): void {
   applyDatasets();
   near.forEach((index) => loadStop(index));
   loadStop(activeIndex);
@@ -173,7 +193,7 @@ function setMode(next: Mode, focusEl?: HTMLElement): void {
   daylight = resolveDaylight(mode, new Date().getHours());
   syncModeUI();
   if (focusEl) focusEl.focus();
-  onDaylightChanged();
+  void onDaylightChanged();
 }
 
 function initModeSwitch(): void {
@@ -220,7 +240,7 @@ setInterval(() => {
   const next = resolveDaylight(mode, new Date().getHours());
   if (next === daylight) return;
   daylight = next;
-  onDaylightChanged();
+  void onDaylightChanged();
 }, 60_000);
 
 try {

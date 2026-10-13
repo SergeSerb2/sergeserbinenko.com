@@ -15,6 +15,7 @@
  * photo loads, and the whole backdrop when scenery is off.
  */
 .scene {
+  --wash: var(--wash-day);
   position: absolute;
   inset: -9vh 0;
   background:
@@ -27,9 +28,19 @@
     filter 1.1s var(--ease-io);
 }
 
+html[data-daylight="night"] .scene[data-has-night] {
+  --wash: var(--wash-night);
+}
+
 /* Fallback (no scroll timelines, or reduced motion): a calm class-driven crossfade. */
 .scene.is-active {
   opacity: 1;
+}
+
+/* Without JavaScript only the noscript scene has a photo; never let the scroll rules hide it. */
+noscript .scene {
+  opacity: 1 !important;
+  animation: none !important;
 }
 
 .scene__img {
