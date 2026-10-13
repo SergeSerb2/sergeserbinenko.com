@@ -153,6 +153,18 @@ test("accumulator tracks refusal text and content_filter finish reason", () => {
   assert.equal(acc.finishReason, "content_filter");
 });
 
+test("accumulator marks a top-level error event as failed and ignores later chunks", () => {
+  const acc = new ChatStreamAccumulator();
+  acc.apply(chunk("Serge is"));
+  assert.equal(acc.failed, false);
+  const applied = acc.apply({ error: { message: "upstream stream closed", type: "server_error" } });
+  assert.equal(applied.textDelta, "");
+  assert.equal(acc.failed, true);
+  acc.apply(chunk(" more text"));
+  assert.equal(acc.text, "Serge is");
+  assert.equal(new ChatStreamAccumulator().apply({ error: null }).textDelta, "");
+});
+
 test("accumulator never throws on odd shapes", () => {
   const acc = new ChatStreamAccumulator();
   for (const junk of [null, 42, "x", [], {}, { choices: "no" }, { choices: [null, { delta: 3 }] }, { usage: "x" }]) {
