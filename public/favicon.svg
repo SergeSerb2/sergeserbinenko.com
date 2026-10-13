@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5f86a0"/>
+      <stop offset=".45" stop-color="#c9b8b0"/>
+      <stop offset=".66" stop-color="#f4a877"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3e6375"/>
+      <stop offset="1" stop-color="#1d3542"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe2bf" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#ffe2bf" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="c"><rect width="64" height="64" rx="15"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="64" height="64" fill="url(#sky)"/>
+    <circle cx="38" cy="42" r="10" fill="#fff1dc"/>
+    <path d="M0 37 C5 33 9 30 13 31 C17 32 19 36 24 38 C26 39 27 41 28 42 H0Z" fill="#2c4757"/>
+    <rect y="42" width="64" height="22" fill="url(#sea)"/>
+    <path d="M30 44.5h16M32 48h12M34.5 51.5h7M36.5 55h3" stroke="url(#glow)" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>
