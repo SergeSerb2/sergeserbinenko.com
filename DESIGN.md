@@ -7,13 +7,13 @@ and the world behind the glass changes with it.
 
 ## Rules
 
-- **The window is the hero; the place is the frame.** Content never sits straight on the
-  photo. The only text on the photo is the centered place caption at the bottom.
-- **It should feel like a real app.** System font (SF Pro on a Mac), 13–14px sidebar rows,
+- **The window is the hero; the scenery is the frame.** Content never sits straight on the
+  photo.
+- **It should feel like a real app.** 13–14px sidebar rows,
   a titlebar with traffic lights and a breadcrumb, a composer like T3 Code's. No marketing
   hero, no scroll-jacking.
 - **The window never moves between threads.** Only the main pane changes, the backdrop
-  crossfades to the new place, and the caption, breadcrumb, and accent follow.
+  reveals the new scenery, and the credit, breadcrumb, and accent follow.
 - **Scenery, not places.** Hand-picked Unsplash photos, hotlinked. No place names: the
   only text on the photo is a small credit chip (photographer and Unsplash) under the
   window's right corner. Never AI-generated scenery.
@@ -37,7 +37,7 @@ and the world behind the glass changes with it.
 | Not found | Faroe Islands |
 
 Scenes live in `src/data/scenes.ts` (photo, photographer, average color, accent,
-focal point). The accent follows the active place. On dark places the glass gets
+focal point). The accent follows the active scene. On darker scenery the glass gets
 more opaque so text keeps its contrast.
 
 ## Type and color
@@ -65,10 +65,10 @@ protection are in the README.
 
 ## Little things
 
-- ⌘K searches threads by title, stack, tagline, and place.
+- ⌘K searches threads by title, stack, and tagline.
 - ↑/↓ moves between threads; the green light goes to the next one.
-- Peek: the photo icon, the red or yellow light, or P hides the window to show the place.
-- The composer turns a question into an email.
+- Peek: the photo icon, the red or yellow light, or P hides the window to show the scenery.
+- The About composer talks to the site agent; the Contact composer turns a note into an email.
 - The sidebar footer shows Vancouver time.
 
 ## Files
