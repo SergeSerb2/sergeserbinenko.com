@@ -1,6 +1,7 @@
 /**
  * Scenery OS client behavior: scene crossfade on ClientRouter navigation,
- * sidebar search, keyboard shortcuts, peek mode, composer mailto, copy-link
+ * sidebar search, keyboard shortcuts, peek mode, composer mailto (the About
+ * composer chats with the site agent instead; see agent-ui.ts), copy-link
  * toast, and the Vancouver clock. Bound once; per-page work runs on
  * `astro:page-load`, and everything that targets swapped-in markup uses
  * document-level delegation.
@@ -10,6 +11,9 @@ import type { SceneId } from "../data/scenes.ts";
 import { site } from "../data/site.ts";
 import { formatTimeInZone } from "./time.ts";
 import { glassForColor, backdropWidth } from "./scene.ts";
+import { initMotion, onMotionPageLoad, noteNavOrigin, applyRevealOrigin, updateActivePlate } from "./motion.ts";
+import { initAmbient, refreshAmbientTint } from "./ambient.ts";
+import { initAgent, onAgentPageLoad, submitToAgent } from "./agent-ui.ts";
 
 declare global {
   interface Window {
@@ -60,6 +64,7 @@ function setScene(key: string, instant = false): void {
   const backdrop = $(".backdrop");
   if (backdrop) backdrop.style.background = s.color;
 
+  refreshAmbientTint();
   const url = sceneUrl(key as SceneId);
   warmed.add(key);
   const pre = new Image();
@@ -69,6 +74,7 @@ function setScene(key: string, instant = false): void {
     back.style.setProperty("--focal", s.focal);
     back.style.zIndex = "2";
     front.style.zIndex = "1";
+    applyRevealOrigin(back);
     back.classList.add("is-on");
     const old = front;
     front = back;
@@ -76,19 +82,17 @@ function setScene(key: string, instant = false): void {
     window.setTimeout(() => {
       if (token === sceneToken) old.classList.remove("is-on");
     }, instant ? 0 : 650);
-    const cap = $("#caption");
-    if (!cap) return;
-    cap.classList.add("is-swapping");
+    const credit = $("#credit");
+    if (!credit) return;
+    credit.classList.add("is-swapping");
     window.setTimeout(() => {
-      const place = $("#capPlace");
-      const who = document.querySelector<HTMLAnchorElement>("#capWho");
-      if (place) place.textContent = s.place;
+      const who = document.querySelector<HTMLAnchorElement>("#creditWho");
       if (who) {
         who.textContent = s.photographer;
         who.href = photographerHref(s);
       }
-      cap.classList.remove("is-swapping");
-    }, instant ? 0 : 240);
+      credit.classList.remove("is-swapping");
+    }, instant ? 0 : 220);
   };
   pre.onload = swap;
   pre.onerror = swap;
@@ -116,6 +120,7 @@ function syncThread(): void {
 
   $$(".row[data-thread][aria-current], .pill[data-thread][aria-current]").forEach((el) => el.removeAttribute("aria-current"));
   $$(`.row[data-thread="${CSS.escape(thread)}"], .pill[data-thread="${CSS.escape(thread)}"]`).forEach((el) => el.setAttribute("aria-current", "page"));
+  updateActivePlate();
 
   if (document.body.classList.contains("peek")) togglePeek(false);
 
@@ -145,17 +150,44 @@ function filter(q: string): void {
   });
   const empty = $("#empty");
   if (empty) empty.hidden = shown > 0;
+  updateActivePlate();
 }
 
 /* ---------- Peek ---------- */
 function togglePeek(force?: boolean): void {
   const on = force ?? !document.body.classList.contains("peek");
   document.body.classList.toggle("peek", on);
+  $("#credit")?.classList.toggle("is-peeking", on);
   const win = $("#window");
   if (win) {
     if (on) win.setAttribute("inert", "");
     else win.removeAttribute("inert");
   }
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = 0;
+function showToast(text: string): void {
+  const toast = $("[data-toast]");
+  if (!toast) return;
+  toast.textContent = text;
+  toast.classList.add("show");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove("show"), 1400);
+}
+
+/* ---------- Composer as email ---------- */
+function sendAsEmail(form: HTMLFormElement): void {
+  const q = form.querySelector<HTMLTextAreaElement>("[data-ask]")?.value.trim() || "";
+  const subject = form.dataset.subject || "Hello";
+  form.classList.add("is-sending");
+  window.setTimeout(
+    () => {
+      location.href = `mailto:${site.email}?subject=${encodeURIComponent(subject)}${q ? `&body=${encodeURIComponent(q)}` : ""}`;
+      window.setTimeout(() => form.classList.remove("is-sending"), 1200);
+    },
+    reducedMotion() ? 0 : 520,
+  );
 }
 
 /* ---------- Thread stepping ---------- */
@@ -172,8 +204,17 @@ function init(): void {
   if (window.__sceneryOsInit) return;
   window.__sceneryOsInit = true;
 
-  document.addEventListener("astro:page-load", syncThread);
+  initMotion();
+  initAmbient(document.querySelector<HTMLCanvasElement>(".ambient"));
+  initAgent({ peek: () => togglePeek(true), toast: showToast });
+  document.addEventListener("astro:page-load", () => {
+    syncThread();
+    onMotionPageLoad();
+    onAgentPageLoad();
+  });
   syncThread();
+  onMotionPageLoad();
+  onAgentPageLoad();
   window.setInterval(tick, 15000);
 
   const search = document.querySelector<HTMLInputElement>("#search");
@@ -190,7 +231,8 @@ function init(): void {
 
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (document.body.classList.contains("peek") && !target.closest(".caption-credit")) {
+    if (target.closest(".row, .pill, .card")) noteNavOrigin(e.clientX, e.clientY);
+    if (document.body.classList.contains("peek") && !target.closest(".credit")) {
       togglePeek(false);
       return;
     }
@@ -213,11 +255,7 @@ function init(): void {
         } catch {
           /* clipboard unavailable; still show the toast like the mockup */
         }
-        const toast = $("[data-toast]");
-        if (toast) {
-          toast.classList.add("show");
-          window.setTimeout(() => toast.classList.remove("show"), 1400);
-        }
+        showToast("Link copied");
       })();
       return;
     }
@@ -230,14 +268,16 @@ function init(): void {
     const form = (e.target as HTMLElement).closest<HTMLFormElement>("[data-composer]");
     if (!form) return;
     e.preventDefault();
-    const q = form.querySelector<HTMLTextAreaElement>("[data-ask]")?.value.trim() || "";
-    const subject = form.dataset.subject || "Hello";
-    location.href = `mailto:${site.email}?subject=${encodeURIComponent(subject)}${q ? `&body=${encodeURIComponent(q)}` : ""}`;
+    if (form.hasAttribute("data-agent")) {
+      void submitToAgent(form, sendAsEmail);
+      return;
+    }
+    sendAsEmail(form);
   });
 
   document.addEventListener("keydown", (e) => {
     const target = e.target as HTMLElement;
-    if (target.matches("[data-ask]") && e.key === "Enter" && !e.shiftKey) {
+    if (target.matches("[data-ask]") && e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       (target as HTMLTextAreaElement).form?.requestSubmit();
       return;
@@ -275,7 +315,7 @@ function init(): void {
     if (row?.dataset.scene) warm(row.dataset.scene);
   });
 
-  // Warm the first few places on idle, like the mockup.
+  // Warm the first few scenes on idle, like the mockup.
   const warmFirst = () => {
     const seen: string[] = [];
     $$("#nav .row[data-scene]").forEach((r) => {

@@ -15,8 +15,14 @@ const recent = projects.slice(0, 3);
   <div class="about">
     <h1 class="hello">Hi, I&#8217;m Serge.</h1>
     <p class="lead">Machine learning engineer in Vancouver. I build AI tools and native apps, and I like software that is calm, fast, and good to look at.</p>
+    {/* Inline display:none because `.chat { display: flex }` in app.css beats [hidden]. */}
+    <section class="chat" aria-label="Conversation with the site agent" hidden style="display: none">
+      <div class="chat__head"><span>Site agent · answers questions about Serge</span><button class="chat__reset" type="button">New chat</button></div>
+      <ol class="chat__log"></ol>
+    </section>
     <Composer
-      placeholder="Ask about my work, or pick a place below"
+      agent
+      placeholder="Ask me anything about my work"
       label="Ask about my work"
       subject="A question about your work"
       chips={[
@@ -25,6 +31,7 @@ const recent = projects.slice(0, 3);
         { label: "Say hello", href: "/contact" },
       ]}
     />
+    <p class="chat__note" hidden></p>
     <section class="recent">
       <h2 class="section-label"><span>Recent threads</span><a href="/projects">All {projects.length} projects</a></h2>
       <div class="cards">{recent.map((p) => <ProjectCard project={p} />)}</div>

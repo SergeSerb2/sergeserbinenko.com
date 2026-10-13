@@ -107,3 +107,49 @@ pnpm deploy   # astro build && wrangler deploy
 Designer-owned assets still to add: `/public/favicon.svg`,
 `/public/apple-touch-icon.png`, and `/public/og.jpg` (1200×630).
 The pages already reference all three.
+
+## Site agent
+
+A small Claude-powered agent answers questions about Serge and his work.
+The Worker in `worker/` serves the static site and three API routes
+(`POST /api/agent/session`, `POST /api/agent/chat`, `GET /api/agent/status`).
+Its knowledge is `/agent-context.txt`, built at build time from the content
+collections (`src/pages/agent-context.txt.ts`). The browser-side module is
+`src/scripts/agent-client.ts`; the chat UI is separate.
+
+The agent is locked down on purpose. Messages are at most 280 characters.
+A Turnstile widget (already created; site key in `wrangler.jsonc` `vars`)
+gates every session. Sessions last 30 minutes with at most 10 messages.
+Each IP gets at most 6 sessions and 30 messages per UTC day. Global caps
+live in `wrangler.jsonc` `vars` (`DAILY_MESSAGE_CAP`, `DAILY_SPEND_CAP_USD`),
+and Workers Rate Limiting bindings cap chat at 4/minute and sessions at
+3/minute per IP. A `Gate` Durable Object enforces the caps and tracks real
+spend from token usage, with a worst-case reservation per turn so a burst
+cannot overshoot the spend cap by much. The system prompt (`worker/prompt.ts`)
+only allows questions about Serge, his work, and this site.
+
+Operator settings (all in `wrangler.jsonc` `vars`, then redeploy):
+
+- `MODEL` — `claude-haiku-5-5` (default) or `claude-sonnet-5-5`. Any other
+  value falls back to Haiku.
+- `AGENT_ENABLED` — kill switch. Set to anything but `"true"` to stop the
+  agent. `GET /api/agent/status` then reports `enabled: false`.
+- `DAILY_MESSAGE_CAP` and `DAILY_SPEND_CAP_USD` — global daily caps.
+
+Before the first deploy, set the two Worker secrets (never put them in the
+repo or in `vars`):
+
+```sh
+pnpm exec wrangler secret put ANTHROPIC_API_KEY
+pnpm exec wrangler secret put TURNSTILE_SECRET
+```
+
+For local development, copy the same names into `.dev.vars` (gitignored)
+plus `DEV=true`, run `pnpm build`, then
+`pnpm exec wrangler dev --local-upstream localhost:8787` and open
+`http://localhost:8787/`. Without `--local-upstream`, wrangler rewrites a
+same-host `Origin` to the configured route host, and the Origin guard rejects it.
+
+Recommended zone settings, to enable by hand in the Cloudflare dashboard
+(not in this repo): Bot Fight Mode, and a WAF rate-limiting rule on
+`/api/agent/*` as a second layer in front of the Worker limits.
