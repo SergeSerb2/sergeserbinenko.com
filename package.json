@@ -11,7 +11,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "typecheck": "tsc-rs --noEmit -p tsconfig.json",
+    "typecheck": "astro sync && tsc-rs --noEmit -p tsconfig.json",
     "check": "pnpm typecheck && astro check",
     "test": "node --test \"src/scripts/*.test.ts\"",
     "deploy": "astro build && wrangler deploy"
