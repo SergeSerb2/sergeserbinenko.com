@@ -1,8 +1,6 @@
-// The system prompt. It must stay byte-stable across requests so prompt
-// caching works: no dates, no per-request data. The knowledge text is
-// appended inside the same cached block.
-
-import type Anthropic from "@anthropic-ai/sdk";
+// The system prompt. It must stay byte-stable across requests so upstream
+// prefix caching works: no dates, no per-request data. The knowledge text
+// is appended in the same prompt.
 
 export const SYSTEM_INSTRUCTIONS = `You are Serge's site agent, a small assistant built into sergeserbinenko.com, the personal website of Serge Serbinenko. You help visitors learn about Serge and his work.
 
@@ -29,15 +27,9 @@ Tools:
 - draft_email: prefill an email to Serge for the visitor to review and send themselves. Use it only when the visitor wants to contact Serge. Keep the draft short and based on what they said. Nothing is sent automatically.
 - Use at most one tool per reply, and keep your text reply short when you use one.`;
 
-/** Build the single cached system block: instructions plus knowledge. */
-export function buildSystemBlock(knowledge: string): Anthropic.TextBlockParam[] {
-  return [
-    {
-      type: "text",
-      text: `${SYSTEM_INSTRUCTIONS}\n\nKNOWLEDGE\n${knowledge}`,
-      cache_control: { type: "ephemeral" },
-    },
-  ];
+/** Build the system prompt: instructions plus knowledge. */
+export function buildSystemPrompt(knowledge: string): string {
+  return `${SYSTEM_INSTRUCTIONS}\n\nKNOWLEDGE\n${knowledge}`;
 }
 
 export const REFUSAL_FALLBACK_TEXT =

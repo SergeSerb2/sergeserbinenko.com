@@ -38,8 +38,8 @@ export interface BeginTurnArgs {
   now: number;
   enabled: boolean;
   dailyMessageCap: number;
-  dailySpendCapMicro: number;
-  reservationMicro: number;
+  dailyTokenCap: number;
+  reservationTokens: number;
 }
 
 export interface EndTurnArgs {
@@ -47,7 +47,7 @@ export interface EndTurnArgs {
   now: number;
   userText: string;
   assistantText: string;
-  actualMicro: number;
+  actualTokens: number;
 }
 
 /** The RPC surface of the Gate Durable Object. */
@@ -65,9 +65,10 @@ export interface Env {
   MODEL?: string;
   TURNSTILE_SITE_KEY?: string;
   DAILY_MESSAGE_CAP?: string;
-  DAILY_SPEND_CAP_USD?: string;
+  DAILY_TOKEN_CAP?: string;
   AGENT_ENABLED?: string;
   DEV?: string;
-  ANTHROPIC_API_KEY?: string;
+  LLM_BASE_URL?: string;
+  LLM_API_KEY?: string;
   TURNSTILE_SECRET?: string;
 }

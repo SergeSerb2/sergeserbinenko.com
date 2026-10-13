@@ -44,6 +44,8 @@ export function counterState(length: number): CounterState {
 }
 
 const MODEL_LABELS: Record<string, string> = {
+  "gpt-6-luna": "GPT-6 Luna",
+  "gpt-5.6-luna": "GPT-5.6 Luna",
   "claude-haiku-5-5": "Claude Haiku 5.5",
   "claude-sonnet-5-5": "Claude Sonnet 5.5",
 };

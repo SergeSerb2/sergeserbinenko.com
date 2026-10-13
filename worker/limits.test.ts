@@ -5,9 +5,9 @@ import {
   checkBeginTurn,
   checkCreateSession,
   parseDailyMessageCap,
-  parseDailySpendCapMicro,
+  parseDailyTokenCap,
   remainingTurns,
-  settleSpend,
+  settleTokens,
   utcDay,
   utcDayMinus,
   MAX_USER_TURNS_PER_SESSION,
@@ -24,11 +24,11 @@ function baseCheck(overrides: Partial<BeginTurnCheck> = {}): BeginTurnCheck {
     session: { expiresAt: NOW + 60_000, userTurns: 0, busySince: null },
     ipMessagesToday: 0,
     globalMessagesToday: 0,
-    globalSpendMicro: 0,
-    globalReservedMicro: 0,
-    reservationMicro: 1000,
+    globalTokens: 0,
+    globalReservedTokens: 0,
+    reservationTokens: 1000,
     dailyMessageCap: 1500,
-    dailySpendCapMicro: 1_500_000,
+    dailyTokenCap: 1_500_000,
     ...overrides,
   };
 }
@@ -97,27 +97,27 @@ test("checkBeginTurn enforces per-IP and global caps with distinct codes", () =>
   });
 });
 
-test("checkBeginTurn counts reservations against the spend cap", () => {
+test("checkBeginTurn counts reservations against the token cap", () => {
   // Settled 1,499,500 + reserved 0 + new 1000 exceeds the 1,500,000 cap.
-  assert.deepEqual(checkBeginTurn(baseCheck({ globalSpendMicro: 1_499_500 })), {
+  assert.deepEqual(checkBeginTurn(baseCheck({ globalTokens: 1_499_500 })), {
     ok: false,
     code: "resting",
   });
   // In-flight reservations from other turns also count.
   assert.deepEqual(
-    checkBeginTurn(baseCheck({ globalSpendMicro: 1_000_000, globalReservedMicro: 499_500 })),
+    checkBeginTurn(baseCheck({ globalTokens: 1_000_000, globalReservedTokens: 499_500 })),
     { ok: false, code: "resting" },
   );
   // Exactly at the cap still fits.
-  assert.deepEqual(checkBeginTurn(baseCheck({ globalSpendMicro: 1_499_000 })), { ok: true });
+  assert.deepEqual(checkBeginTurn(baseCheck({ globalTokens: 1_499_000 })), { ok: true });
 });
 
-test("settleSpend moves reservation to settled actual cost", () => {
-  assert.deepEqual(settleSpend(100, 50, 50, 30), { settledMicro: 130, reservedMicro: 0 });
-  assert.deepEqual(settleSpend(100, 50, 50, 80), { settledMicro: 180, reservedMicro: 0 });
-  assert.deepEqual(settleSpend(100, 50, 50, 0), { settledMicro: 100, reservedMicro: 0 });
+test("settleTokens moves reservation to settled actual tokens", () => {
+  assert.deepEqual(settleTokens(100, 50, 50, 30), { settledTokens: 130, reservedTokens: 0 });
+  assert.deepEqual(settleTokens(100, 50, 50, 80), { settledTokens: 180, reservedTokens: 0 });
+  assert.deepEqual(settleTokens(100, 50, 50, 0), { settledTokens: 100, reservedTokens: 0 });
   // Reserved never goes negative if state drifted.
-  assert.deepEqual(settleSpend(100, 10, 50, 30), { settledMicro: 130, reservedMicro: 0 });
+  assert.deepEqual(settleTokens(100, 10, 50, 30), { settledTokens: 130, reservedTokens: 0 });
 });
 
 test("utcDay rolls over at UTC midnight", () => {
@@ -133,10 +133,11 @@ test("cap parsers fall back to defaults on bad input", () => {
   assert.equal(parseDailyMessageCap(undefined), 1500);
   assert.equal(parseDailyMessageCap("nope"), 1500);
   assert.equal(parseDailyMessageCap("-5"), 1500);
-  assert.equal(parseDailySpendCapMicro("1.50"), 1_500_000);
-  assert.equal(parseDailySpendCapMicro("0.25"), 250_000);
-  assert.equal(parseDailySpendCapMicro(undefined), 1_500_000);
-  assert.equal(parseDailySpendCapMicro("nope"), 1_500_000);
+  assert.equal(parseDailyTokenCap("4000000"), 4_000_000);
+  assert.equal(parseDailyTokenCap("0"), 0);
+  assert.equal(parseDailyTokenCap(undefined), 4_000_000);
+  assert.equal(parseDailyTokenCap("nope"), 4_000_000);
+  assert.equal(parseDailyTokenCap("-5"), 4_000_000);
 });
 
 test("appendHistory keeps the last 8 messages and caps assistant text", () => {
