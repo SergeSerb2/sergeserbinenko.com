@@ -42,3 +42,19 @@ export function usageTokens(usage: UsageTokensInput | null | undefined): number 
   if (usage === null || usage === undefined) return 0;
   return tokenCount(usage.prompt_tokens) + tokenCount(usage.completion_tokens);
 }
+
+/**
+ * Tokens to charge for a finished or failed turn. Real usage wins when it is
+ * above zero. Otherwise, any streamed output (text, tool call, refusal, or
+ * usage) settles at the full reservation; a clean failure before the stream
+ * settles at zero.
+ */
+export function turnTokens(
+  usage: UsageTokensInput | null | undefined,
+  sawStreamEvent: boolean,
+  reservation: number,
+): number {
+  const charged = usageTokens(usage);
+  if (charged > 0) return charged;
+  return sawStreamEvent ? Math.max(0, Math.floor(reservation)) : 0;
+}

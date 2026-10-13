@@ -7,6 +7,7 @@ import {
   estimateTokens,
   reservationTokens,
   resolveModel,
+  turnTokens,
   usageTokens,
 } from "./budget.ts";
 
@@ -42,4 +43,13 @@ test("usageTokens sums prompt and completion tokens defensively", () => {
   assert.equal(usageTokens({}), 0);
   assert.equal(usageTokens({ prompt_tokens: null, completion_tokens: null }), 0);
   assert.equal(usageTokens({ prompt_tokens: -3, completion_tokens: Number.NaN }), 0);
+});
+
+test("turnTokens charges real usage, else the reservation after any stream output", () => {
+  assert.equal(turnTokens({ prompt_tokens: 4000, completion_tokens: 20 }, true, 6000), 4020);
+  // Zero or missing usage after a tool-only or refusal-only reply.
+  assert.equal(turnTokens({ prompt_tokens: 0, completion_tokens: 0 }, true, 6000), 6000);
+  assert.equal(turnTokens(null, true, 6000), 6000);
+  // Clean failure before any stream event.
+  assert.equal(turnTokens(null, false, 6000), 0);
 });

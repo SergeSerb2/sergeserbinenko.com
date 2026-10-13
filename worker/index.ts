@@ -5,7 +5,7 @@ import {
   estimateTokens,
   reservationTokens,
   resolveModel,
-  usageTokens,
+  turnTokens,
   type AllowedModel,
 } from "./budget.ts";
 import {
@@ -251,6 +251,7 @@ function streamChat(args: StreamChatArgs): Response {
       let abortKind: "" | "timeout" | "client_abort" = "";
       let sawStreamEvent = false;
       let replyCapped = false;
+      let truncated = false;
       let upstreamStatus: number | null = null;
       const accumulator = new ChatStreamAccumulator();
       const upstream = new AbortController();
@@ -328,6 +329,12 @@ function streamChat(args: StreamChatArgs): Response {
         if (!replyCapped && !parser.done) {
           applyPayloads(parser.feed(decoder.decode()));
           applyPayloads(parser.flush());
+          // A stream that closed without [DONE] or a finish reason was cut
+          // off (proxy restart, truncated hop). Treat it as a failed turn.
+          if (!parser.done && accumulator.finishReason === null) {
+            truncated = true;
+            throw new Error("upstream_truncated");
+          }
         }
         if (replyCapped) {
           upstream.abort();
@@ -363,13 +370,7 @@ function streamChat(args: StreamChatArgs): Response {
             controller.enqueue(encodeSseBytes("text", { delta: assistantText }));
           }
         }
-        if (accumulator.usage !== null) {
-          const charged = usageTokens(accumulator.usage);
-          tokensCharged =
-            charged === 0 && accumulator.text !== "" ? args.reservationTokensValue : charged;
-        } else {
-          tokensCharged = sawStreamEvent ? args.reservationTokensValue : 0;
-        }
+        tokensCharged = turnTokens(accumulator.usage, sawStreamEvent, args.reservationTokensValue);
         controller.enqueue(
           encodeSseBytes("done", { remaining: args.remaining, stop: stopReason }),
         );
@@ -378,6 +379,8 @@ function streamChat(args: StreamChatArgs): Response {
           reason = abortKind;
         } else if (accumulator.failed) {
           reason = "upstream_stream_error";
+        } else if (truncated) {
+          reason = "upstream_truncated";
         } else if (upstreamStatus === 429) {
           reason = "upstream_rate_limit";
         } else if (upstreamStatus !== null) {
@@ -387,7 +390,7 @@ function streamChat(args: StreamChatArgs): Response {
         }
         // If generation may have run, settle at the reservation so the
         // daily cap stays honest. Clean pre-stream errors settle at zero.
-        tokensCharged = sawStreamEvent ? args.reservationTokensValue : 0;
+        tokensCharged = turnTokens(null, sawStreamEvent, args.reservationTokensValue);
         // A failed turn is not remembered: partial text never enters history.
         assistantText = "";
         historyNote = "";
