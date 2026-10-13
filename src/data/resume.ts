@@ -20,19 +20,6 @@ export const experience: Role[] = [
     points: [],
   },
   {
-    title: "Lead Engineer (Contract)",
-    org: "Broadcast monitoring platform, private client",
-    start: "2025",
-    end: "Now",
-    summary: "Round-the-clock radio and TV monitoring with live transcripts, AI segment detection, and one dashboard.",
-    points: [
-      "24/7 stream ingest with health checks, and local speech-to-text with a cloud fallback.",
-      "Language models split transcripts into segments and summarize them.",
-      "Wrote most of the system; staging deploys on every merge, production on Google Cloud Run.",
-    ],
-    stack: ["Python", "TypeScript", "Speech-to-text", "LLMs", "Google Cloud Run"],
-  },
-  {
     title: "Software Developer",
     org: "Sapphire4U",
     start: "2016 — 2019, 2023",
