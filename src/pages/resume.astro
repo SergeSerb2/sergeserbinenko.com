@@ -9,6 +9,10 @@ function when(start: string, end: string): string {
 ---
 <App title="Résumé" thread="resume" scene="moraine" crumb="Résumé">
   <div class="resume">
+    <header class="print-only print-head">
+      <b>{site.name}</b> &middot; {site.role} &middot; {site.location}<br>
+      {site.email} &middot; sergeserbinenko.com &middot; {site.github.replace("https://", "")}
+    </header>
     <p class="kicker"><i></i>Vancouver, BC &middot; {site.languages.join(", ")}</p>
     <h1 class="title">Résumé</h1>
     <p class="intro">By day I am a machine learning engineer at PressReader, the platform behind thousands of newspapers and magazines worldwide. I also build a broadcast-monitoring platform for a private client. The rest of the time I build the tools I want to use, mostly in TypeScript, Swift, and Rust, with coding agents doing a lot of the typing.</p>
