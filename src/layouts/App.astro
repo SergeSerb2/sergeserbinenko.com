@@ -1,0 +1,135 @@
+---
+import "../styles/app.css";
+import { ClientRouter } from "astro:transitions";
+import { getCollection } from "astro:content";
+import Sidebar from "../components/Sidebar.astro";
+import type { Thread } from "../components/Sidebar.astro";
+import { site } from "../data/site.ts";
+import { scenes, photoSrc, photographerHref, unsplashHref } from "../data/scenes.ts";
+import type { SceneId } from "../data/scenes.ts";
+import { glassForColor } from "../scripts/scene.ts";
+
+interface Props {
+  title: string;
+  description?: string;
+  thread: string;
+  scene: SceneId;
+  crumb: string;
+}
+const { title, description = site.description, thread, scene: sceneId, crumb } = Astro.props;
+const scene = scenes[sceneId];
+const { glass, side } = glassForColor(scene.color);
+
+const displayTitle = title.startsWith(site.name) ? title : `${title} · ${site.name}`;
+const pathname = Astro.url.pathname;
+const canonical = pathname === "/" ? `${site.url}/` : `${site.url}${pathname.replace(/\/$/, "")}`;
+const ogImage = `${site.url}/og.jpg`;
+
+function firstYear(year: string): string {
+  return year.split(/[–—-]/)[0].trim();
+}
+
+const allProjects = await getCollection("projects");
+const projects = allProjects
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => a.data.order - b.data.order);
+
+const threads: Thread[] = [
+  { id: "about", title: "About", href: "/", scene: "tofino", group: "Pinned", q: `about ${scenes.tofino.place}`.toLowerCase() },
+  { id: "resume", title: "Résumé", href: "/resume", scene: "moraine", group: "Pinned", q: `résumé resume ${scenes.moraine.place}`.toLowerCase() },
+  { id: "contact", title: "Contact", href: "/contact", scene: "lofoten", group: "Pinned", q: `contact ${scenes.lofoten.place}`.toLowerCase() },
+  ...projects.map((p) => ({
+    id: p.id,
+    title: p.data.title,
+    href: `/projects/${p.id}`,
+    scene: p.data.scene as SceneId,
+    group: "Projects" as const,
+    meta: firstYear(p.data.year),
+    q: `${p.data.title} ${p.data.stack.join(" ")} ${p.data.tagline} ${scenes[p.data.scene as SceneId].place}`.toLowerCase(),
+  })),
+];
+
+const backdropUrl = photoSrc(scene, 2400);
+
+// Pane view-transition animation: 160ms out / 220ms in, 6px rise (see app.css keyframes).
+const panePair = {
+  old: { name: "pane-out", duration: "160ms", easing: "ease", fillMode: "both" },
+  new: { name: "pane-in", duration: "220ms", easing: "cubic-bezier(.2,.7,.2,1)", fillMode: "both" },
+};
+const paneAnim = { forwards: panePair, backwards: panePair };
+---
+<!doctype html>
+<html lang="en" data-thread={thread} data-scene={sceneId} style={`--accent:${scene.accent};--glass:${glass};--side:${side}`}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{displayTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={displayTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#e9eef0" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="sitemap" href="/sitemap-index.xml" />
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
+  <link rel="preconnect" href="https://images.unsplash.com" />
+  <link rel="preload" as="image" href={backdropUrl} fetchpriority="high" />
+  <ClientRouter />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="backdrop" aria-hidden="true" transition:persist style={`background:${scene.color}`}>
+    <div class="scene is-on" id="sceneA" style={`background-image:url('${backdropUrl}');--focal:${scene.focal};z-index:2`}></div>
+    <div class="scene" id="sceneB"></div>
+  </div>
+
+  <figure class="caption" id="caption" aria-live="polite" transition:persist>
+    <div class="caption-place" id="capPlace">{scene.place}</div>
+    <div class="caption-credit">Photo by <a id="capWho" href={photographerHref(scene)} target="_blank" rel="noopener">{scene.photographer}</a> on <a href={unsplashHref} target="_blank" rel="noopener">Unsplash</a></div>
+  </figure>
+
+  <div class="peek-hint" aria-hidden="true" transition:persist>Click anywhere or press Esc to come back</div>
+
+  <div class="window" id="window">
+    <Sidebar threads={threads} current={thread} />
+
+    <section class="pane">
+      <header class="titlebar">
+        <div class="crumbs"><span class="root">{site.name}</span><span class="sep">/</span><span class="here">{crumb}</span></div>
+        <div class="tools">
+          <button class="icon-btn" type="button" data-action="peek" aria-label="Look at the place" title="Look at the place (P)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2.5"/><path d="M2.2 11.4l3.6-3.7 2.6 2.6 1.9-1.8 3.6 3.4" stroke-linecap="round"/><circle cx="10.8" cy="5.9" r="1.1"/></svg>
+          </button>
+          <button class="icon-btn" type="button" data-action="copy" aria-label="Copy link to this thread" title="Copy link">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"><path d="M6.6 9.4l2.8-2.8"/><path d="M7.3 4.6l1.2-1.2a2.6 2.6 0 013.7 3.7L11 8.3"/><path d="M8.7 11.4l-1.2 1.2a2.6 2.6 0 01-3.7-3.7L5 7.7"/></svg>
+          </button>
+        </div>
+        <div class="toast" data-toast role="status">Link copied</div>
+      </header>
+
+      <nav class="pills" aria-label="Threads" transition:persist>
+        {threads.map((t, i) => (
+          <>
+            {i === 3 && <span class="pill div" aria-hidden="true"></span>}
+            <a class="pill" href={t.href} data-thread={t.id} data-scene={t.scene} aria-current={thread === t.id ? "page" : undefined} data-astro-prefetch><span class="thumb" style={`background-image:url('${photoSrc(scenes[t.scene], 64, 64)}')`}></span>{t.title}</a>
+          </>
+        ))}
+      </nav>
+
+      <main class="view" id="main"><div class="view-inner" transition:name="pane" transition:animate={paneAnim}><slot /></div></main>
+    </section>
+  </div>
+
+  <script>
+    import "../scripts/app.ts";
+  </script>
+</body>
+</html>

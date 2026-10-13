@@ -1,74 +1,57 @@
-# Design: "Journey"
+# Design: "Scenery OS"
 
-The site is a trip through real places. A full-bleed photo sits behind everything.
-Each section of the home page is a stop with its own place. Scrolling moves the camera:
-the next place arrives out of a blur while the last one racks out of focus, the caption
-spells out the new place letter by letter, and the accent color shifts to match. Content
-floats over the photo in frosted glass, in shapes borrowed from travel: a boarding pass,
-airplane windows, a folded map, an airmail postcard.
-
-It carries the "World Scenery" language from T3 Pretty and Spotiurge: real photographs,
-calm glass, a place caption, and the photographer always credited.
+The whole site is one native-feeling Mac app window, styled after Serge's T3 Pretty app,
+floating over a full-screen landscape photo. Every thread (About, Résumé, Contact, each
+project) has its own place. Moving around the site feels like switching threads in an app,
+and the world behind the glass changes with it.
 
 ## Rules
 
-- **Photo first.** Every stop leaves the photo room to breathe. Big titles sit straight on
-  the scene; anything you read for more than a line sits on glass.
-- **One idea per stop.** Hero is a boarding pass, Now is a statement with floating facts,
-  Work is a giant title, each project is a view through an airplane window, the résumé
-  is a trail on a map, contact is an airmail postcard.
-- **Motion is scrubbed, not timed.** Scene changes, captions, parallax, and reveals are
-  tied to scroll position (CSS scroll-driven animations), so they follow your hand and
-  play backwards when you scroll back. Browsers without scroll timelines get calm
-  class-driven fades.
-- **Always a little alive.** Photos breathe, light wanders across the scene, glass rims
-  catch a travelling highlight, badges turn, the departure board rolls, facts bob.
-  All of it stops for reduced motion.
-- **Real places, real credit.** Hand-picked Unsplash photos, hotlinked from
-  `images.unsplash.com`, photographer and Unsplash linked (with UTM params) wherever a
-  photo appears. Never AI-generated scenery.
+- **The window is the hero; the place is the frame.** Content never sits straight on the
+  photo. The only text on the photo is the centered place caption at the bottom.
+- **It should feel like a real app.** System font (SF Pro on a Mac), 13–14px sidebar rows,
+  a titlebar with traffic lights and a breadcrumb, a composer like T3 Code's. No marketing
+  hero, no scroll-jacking.
+- **The window never moves between threads.** Only the main pane changes, the backdrop
+  crossfades to the new place, and the caption, breadcrumb, and accent follow.
+- **Real places, real credit.** Hand-picked Unsplash photos, hotlinked, with the
+  photographer and Unsplash linked in the caption. Never AI-generated scenery.
+- **Calm motion.** Backdrop crossfade 600 ms with a slight settle, pane 160 ms out and
+  220 ms in with a 6 px rise. Reduced motion turns movement off.
 
-## Type
+## Threads and places
 
-One family: **Mona Sans** (variable weight 200–900 and width 75–125).
+| Thread | Place |
+| --- | --- |
+| About | Tofino, Canada |
+| Résumé | Moraine Lake, Canada |
+| Contact | Lofoten, Norway |
+| Each project | The `scene` in its frontmatter |
+| Not found | Faroe Islands |
 
-- Names and titles: heavy and wide (`font-stretch: 125%`, weight 820–900, tight tracking).
-- Labels, coordinates, dates, chips: condensed capitals (`font-stretch: 75%`, weight
-  650, tracking 0.15em). This replaces a monospace.
-- Body: plain (weight 420).
-- Secondary names (orgs, roles, the postcard note): light and slightly wide.
-- Width is motion: the hero name squeezes from wide to condensed as you leave it.
+Places live in `src/data/scenes.ts` (photo, photographer, coordinates, average color,
+accent, focal point). The accent follows the active place. On dark places the glass gets
+more opaque so text keeps its contrast.
 
-## Places
+## Type and color
 
-All places live in `src/data/scenes.ts`: photo, place name, short `word` (set huge behind
-the stop), coordinates, time zone, average color, accent, and focal point. Night
-variants live in `nightScenes` and replace the day photo between 19:00 and 06:00 visitor
-time.
+- Font: `-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif`.
+- Greeting 48/600, project title 40/600, lead 19/400, sidebar rows 13.5, labels 12.
+- Ink `#1d1f24`, secondary `#484d56`, gray `#6b7079`.
+- Window glass `rgba(255,255,255,.55)` with `blur(30px) saturate(1.8)`; sidebar adds a
+  lighter layer; active row `rgba(255,255,255,.7)`; composer `rgba(255,255,255,.8)`.
+- Traffic lights `#ff5f57`, `#febc2e`, `#28c840`.
 
-## Scenery engine
+## Little things
 
-- One `.scene` per stop, in the fixed `.scenery` layer. Each stop has a view timeline
-  (`--stop-N`); `<body>` lists them in `timeline-scope` so the backdrop can follow them.
-- `scene-in`, `scene-out`, and `scene-drift` (in `scenery.css`) are the whole transition:
-  blur + dolly in, blur + pull back, and parallax drift.
-- JS only loads photos near the viewport, tracks the active stop (accent, route, caption
-  focusability), and resolves day or night.
-
-## Modes
-
-Top-right switch: **Auto**, **Day**, **Night**, **Off** (no photos, the place's color
-wash still transitions). Stored in `localStorage.scenery`, applied before first paint.
-Glass follows the visitor's color scheme, except night photos always use dark glass.
+- ⌘K searches threads by title, stack, tagline, and place.
+- ↑/↓ moves between threads; the green light goes to the next one.
+- Peek: the photo icon, the red or yellow light, or P hides the window to show the place.
+- The composer turns a question into an email.
+- The sidebar footer shows Vancouver time.
 
 ## Files
 
-- `src/styles/global.css`: font, tokens, base, view transitions.
-- `src/styles/scenery.css`: backdrop scenes, light, glass and rim light, top bar, route
-  rail, place caption.
-- `src/styles/components.css`: stops and giant words, type, buttons, boarding pass,
-  ticker, Now facts, voyage (window, card, badge), map card and trail, airmail postcard,
-  motion.
-- `src/styles/pages.css`: inner pages, project tiles, résumé, notes, print.
-
-Components use these class names and contain no styles of their own.
+- `src/layouts/App.astro`: the shell (backdrop, caption, window, sidebar, titlebar).
+- `src/styles/app.css`: all styles, including phone layout and résumé printing.
+- `src/scripts/app.ts`: navigation hooks, backdrop crossfade, search, keys, peek.

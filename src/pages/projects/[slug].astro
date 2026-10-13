@@ -1,22 +1,22 @@
 ---
-import Base from "../../layouts/Base.astro";
+import App from "../../layouts/App.astro";
 import { Image } from "astro:assets";
 import { getCollection, render } from "astro:content";
 import { scenes, photoSrc } from "../../data/scenes.ts";
 import type { SceneId } from "../../data/scenes.ts";
+import { site } from "../../data/site.ts";
 
 export async function getStaticPaths() {
   const all = await getCollection("projects");
   const projects = all.filter((p) => !p.data.draft).sort((a, b) => a.data.order - b.data.order);
-  return projects.map((project, i) => ({
+  return projects.map((project) => ({
     params: { slug: project.id },
-    props: { project, next: projects[(i + 1) % projects.length] },
+    props: { project },
   }));
 }
 
-const { project, next } = Astro.props;
+const { project } = Astro.props;
 const d = project.data;
-const slug = project.id;
 const scene = scenes[d.scene as SceneId];
 const { Content } = await render(project);
 
@@ -27,36 +27,42 @@ const kindLabels: Record<string, string> = {
   work: "Client work",
   experiment: "Experiment",
 };
-const hasLinks = Boolean(d.links.repo || d.links.live || d.links.download);
+const kicker = [kindLabels[d.kind], d.year, d.status].filter(Boolean).join(" · ");
 ---
-<Base title={d.title} description={d.tagline} scenes={[d.scene as SceneId]} route="site" current="work">
-  <div class="page" data-scene={d.scene} data-stop="work" data-stop-index="0" style="view-timeline-name: --stop-0">
-    <div class="stop__word" aria-hidden="true">{scene.word}</div>
-    <header class="voyage voyage--page" style={`view-transition-name: project-${slug}`} aria-labelledby={`p-${slug}`}>
-      <figure class="voyage__window" data-tilt>
-        {d.shot ? <Image class="shot" src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 1024px) 38rem, 92vw" /> : <img class="shot shot--scene" src={photoSrc(scene, 1200)} alt="" loading="lazy" decoding="async" style={`--focal: ${scene.focal}`} />}
-        <span class="voyage__glare" aria-hidden="true"></span>
-      </figure>
-      <div class="voyage__card glass" data-tilt>
-        <p class="eyebrow">{kindLabels[d.kind]} · {d.year}{d.status && <span class="eyebrow__status">{d.status}</span>}</p>
-        <h1 class="voyage__title" id={`p-${slug}`}>{d.title}</h1>
-        <p class="voyage__tagline">{d.tagline}</p>
-        <ul class="chips" aria-label="Built with">{d.stack.map((s) => <li class="chip">{s}</li>)}</ul>
-        {hasLinks && (
-          <div class="actions actions--small">
-            {d.links.repo && <a class="btn btn--small" href={d.links.repo} rel="noopener">GitHub <span aria-hidden="true">↗</span></a>}
-            {d.links.live && <a class="btn btn--small" href={d.links.live} rel="noopener">Visit <span aria-hidden="true">↗</span></a>}
-            {d.links.download && <a class="btn btn--small" href={d.links.download} rel="noopener">Download <span aria-hidden="true">↗</span></a>}
-          </div>
+<App title={d.title} description={d.tagline} thread={project.id} scene={d.scene as SceneId} crumb={d.title}>
+  <article class="project-wrap">
+    <div class:list={["project", { "no-shot": !d.shot }]}>
+      <div>
+        <p class="kicker"><i></i>{kicker}</p>
+        <h1 class="title">{d.title}</h1>
+        <p class="tagline">{d.tagline}</p>
+        <ul class="stack">{d.stack.map((x) => <li>{x}</li>)}</ul>
+        {!d.shot && (
+          <dl class="facts">
+            <dt>Kind</dt><dd>{kindLabels[d.kind]}</dd>
+            <dt>Year</dt><dd>{d.year}</dd>
+            {d.status && <><dt>Status</dt><dd>{d.status}</dd></>}
+            <dt>Place</dt><dd>{scene.place}</dd>
+          </dl>
         )}
+        <div class="actions">
+          {d.links.repo
+            ? <a class="btn" href={d.links.repo} target="_blank" rel="noopener">Open on GitHub <span aria-hidden="true">&#8599;</span></a>
+            : <a class="btn ghost" href={`mailto:${site.email}?subject=${encodeURIComponent(d.title)}`}>Ask about {d.title}</a>}
+          {d.links.live && <a class="btn ghost" href={d.links.live} target="_blank" rel="noopener">Visit <span aria-hidden="true">&#8599;</span></a>}
+          {d.links.download && <a class="btn ghost" href={d.links.download} target="_blank" rel="noopener">Download <span aria-hidden="true">&#8599;</span></a>}
+        </div>
       </div>
-    </header>
-    <article class="sheet glass prose">
+      {d.shot ? (
+        <figure class="shot"><Image src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 701px) 480px, 92vw" /></figure>
+      ) : (
+        <figure class="shot place" style={`background-image:url('${photoSrc(scene, 760, 950)}');background-position:${scene.focal}`}>
+          <figcaption>{scene.place}<small>{scene.coords}</small></figcaption>
+        </figure>
+      )}
+    </div>
+    <div class="prose project-story">
       <Content />
-    </article>
-    <nav class="page__nav" aria-label="Projects">
-      <a class="link-back" href="/projects">All projects</a>
-      <a class="link-arrow" href={`/projects/${next.id}`}>Next: {next.data.title}</a>
-    </nav>
-  </div>
-</Base>
+    </div>
+  </article>
+</App>

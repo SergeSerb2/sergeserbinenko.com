@@ -1,105 +1,30 @@
 ---
-import Base from "../layouts/Base.astro";
-import { getCollection } from "astro:content";
+import App from "../layouts/App.astro";
 import { site } from "../data/site.ts";
-import { experience, education, skills, volunteering } from "../data/resume.ts";
+import { experience, education } from "../data/resume.ts";
 
-function pub(summary: string): string | null {
-  return summary.startsWith("TODO(serge)") ? null : summary;
+function when(start: string, end: string): string {
+  return start === end ? start : `${start} — ${end}`;
 }
-
-const allProjects = await getCollection("projects");
-const featured = allProjects
-  .filter((p) => !p.data.draft && p.data.featured)
-  .sort((a, b) => a.data.order - b.data.order);
-const siteLabel = site.url.replace(/^https?:\/\//, "");
 ---
-<Base title="Résumé" scenes={["skye"]} route="site" current="resume">
-  <div class="page" data-scene="skye" data-stop="resume" data-stop-index="0" style="view-timeline-name: --stop-0">
-    <div class="stop__word" aria-hidden="true">Skye</div>
-    <article class="sheet glass resume" aria-labelledby="resume-name">
-      <header class="resume__head">
-        <h1 class="title" id="resume-name">{site.name}</h1>
-        <p class="resume__role">{site.role} · {site.location}</p>
-        <ul class="resume__contact">
-          <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
-          <li><a href={site.github} rel="noopener">{site.github.replace(/^https?:\/\//, "")}</a></li>
-          {site.linkedin && <li><a href={site.linkedin} rel="noopener">{site.linkedin.replace(/^https?:\/\//, "")}</a></li>}
-          <li><a href={site.url} rel="noopener">{siteLabel}</a></li>
-        </ul>
-        <button class="btn btn--small resume__print" type="button" data-print>Save as PDF</button>
-      </header>
-
-      <section class="resume__section" aria-labelledby="r-experience">
-        <h2 class="resume__h" id="r-experience">Experience</h2>
-        {experience.map((role) => {
-          const summary = pub(role.summary);
-          return (
-            <div class="entry">
-              <div class="entry__head">
-                <h3 class="entry__title">{role.title} · <span class="entry__org">{role.org}</span></h3>
-                <p class="entry__when">{role.start} — {role.end}</p>
-              </div>
-              {summary && <p class="entry__summary">{summary}</p>}
-              {role.points.length > 0 && <ul class="entry__points">{role.points.map((pt) => <li>{pt}</li>)}</ul>}
-              {role.stack && role.stack.length > 0 && <p class="entry__stack">{role.stack.join(" · ")}</p>}
-            </div>
-          );
-        })}
-      </section>
-
-      <section class="resume__section" aria-labelledby="r-projects">
-        <h2 class="resume__h" id="r-projects">Selected projects</h2>
-        {featured.map((project) => (
-          <div class="entry">
-            <div class="entry__head">
-              <h3 class="entry__title"><a href={`/projects/${project.id}`}>{project.data.title}</a>{project.data.role ? <span class="entry__org"> · {project.data.role}</span> : null}</h3>
-              <p class="entry__when">{project.data.year}</p>
-            </div>
-            <p class="entry__summary">{project.data.tagline}</p>
-            {project.data.stack.length > 0 && <p class="entry__stack">{project.data.stack.join(" · ")}</p>}
-          </div>
-        ))}
-      </section>
-
-      <section class="resume__section" aria-labelledby="r-skills">
-        <h2 class="resume__h" id="r-skills">Skills</h2>
-        <dl class="skills">
-          {Object.entries(skills).map(([group, items]) => (
-            <div class="skills__row"><dt>{group}</dt><dd>{items.join(", ")}</dd></div>
-          ))}
-        </dl>
-      </section>
-
-      <section class="resume__section" aria-labelledby="r-education">
-        <h2 class="resume__h" id="r-education">Education</h2>
-        {education.map((ed) => (
-          <div class="entry">
-            <div class="entry__head">
-              <h3 class="entry__title">{ed.degree} · <span class="entry__org">{ed.school}</span></h3>
-              <p class="entry__when">{ed.start} — {ed.end}</p>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section class="resume__section" aria-labelledby="r-volunteering">
-        <h2 class="resume__h" id="r-volunteering">Volunteering</h2>
-        {volunteering.map((v) => (
-          <div class="entry">
-            <div class="entry__head">
-              <h3 class="entry__title">{v.title} · <span class="entry__org">{v.org}</span></h3>
-              <p class="entry__when">{v.start} — {v.end}</p>
-            </div>
-            <p class="entry__summary">{v.summary}</p>
-          </div>
-        ))}
-      </section>
-
-      <section class="resume__section" aria-labelledby="r-languages">
-        <h2 class="resume__h" id="r-languages">Languages</h2>
-        <p>{site.languages.join(", ")}</p>
-      </section>
-    </article>
+<App title="Résumé" thread="resume" scene="moraine" crumb="Résumé">
+  <div class="resume">
+    <p class="kicker"><i></i>Vancouver, BC &middot; {site.languages.join(", ")}</p>
+    <h1 class="title">Résumé</h1>
+    <p class="intro">By day I am a machine learning engineer at PressReader, the platform behind thousands of newspapers and magazines worldwide. I also build a broadcast-monitoring platform for a private client. The rest of the time I build the tools I want to use, mostly in TypeScript, Swift, and Rust, with coding agents doing a lot of the typing.</p>
+    <div class="actions no-print">
+      <button class="btn ghost" type="button" data-print>Save as PDF</button>
+    </div>
+    <ol class="xp">
+      {experience.map((x) => (
+        <li><b>{x.title}</b><span>{x.org}</span><time>{when(x.start, x.end)}</time></li>
+      ))}
+    </ol>
+    <h2 class="subhead">Education</h2>
+    <ol class="xp" style="margin-top:8px">
+      {education.map((ed) => (
+        <li><b>{ed.degree}</b><span>{ed.school}</span><time>{when(ed.start, ed.end)}</time></li>
+      ))}
+    </ol>
   </div>
-</Base>
+</App>
