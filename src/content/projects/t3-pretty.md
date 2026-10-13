@@ -1,6 +1,6 @@
 ---
 title: "T3 Pretty"
-tagline: "The coding-agent app I work in every day: a fork of T3 Code with a real place behind every thread."
+tagline: "The coding-agent app I work in every day: a fork of T3 Code with real scenery behind every thread."
 year: "2026"
 kind: "fork"
 role: "Solo developer"
@@ -12,7 +12,7 @@ order: 1
 links:
   repo: "https://github.com/SergeSerb2/t3-pretty"
 shot: "../../assets/projects/t3-pretty.jpg"
-shotAlt: "T3 Pretty showing a new thread over a blurred photo of Los Roques, Venezuela"
+shotAlt: "T3 Pretty showing a new thread over a blurred scenery photo"
 ---
 
 [T3 Code](https://github.com/pingdotgg/t3code) is an open-source app for running coding agents, made by the team at ping.gg. T3 Pretty is my fork of it. I work in it every day, and this site was built in it.
@@ -21,7 +21,7 @@ I keep the fork in sync with upstream and build on top. So far that is about 1,8
 
 ## World Scenery
 
-Every thread sits in front of a full-bleed photo of a real place, credited to its photographer. The interface floats over it on frosted glass. There are five photo sets: World Scenery, Night Cities, Deep Forest, Night Sky, and Grand Buildings. The glass follows your light or dark setting, never the photo, so text stays readable on any scene.
+Every thread sits in front of a full-bleed scenery photo, credited to its photographer. The interface floats over it on frosted glass. There are five photo sets: World Scenery, Night Cities, Deep Forest, Night Sky, and Grand Buildings. The glass follows your light or dark setting, never the photo, so text stays readable on any scene.
 
 This website borrows the same idea.
 

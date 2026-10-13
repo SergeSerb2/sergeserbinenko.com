@@ -10,7 +10,7 @@ const { projects } = Astro.props;
 const shown = [...new Map(projects.map((p) => [p.data.scene, scenes[p.data.scene as SceneId]])).values()];
 ---
 <p class="card-credits">
-  Card photos by {shown.map((s, i) => (
+  Photos by {shown.map((s, i) => (
     <>{i > 0 && (i === shown.length - 1 ? " and " : ", ")}<a href={photographerHref(s)} rel="noopener">{s.photographer}</a></>
   ))} on <a href={unsplashHref} rel="noopener">Unsplash</a>.
 </p>

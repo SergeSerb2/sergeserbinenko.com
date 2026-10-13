@@ -11,7 +11,7 @@ const d = project.data;
 const scene = scenes[d.scene as SceneId];
 ---
 <a class="card" href={`/projects/${project.id}`}>
-  <span class="strip" style={`background-image:url('${photoSrc(scene, 560, 180)}')`}><span>{scene.place.split(",")[0]}</span></span>
+  <span class="strip" style={`background-image:url('${photoSrc(scene, 560, 180)}')`}></span>
   <span class="ct">{d.title}<small>{d.year}</small></span>
   <p>{d.tagline}</p>
 </a>
