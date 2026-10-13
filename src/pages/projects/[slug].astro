@@ -1,0 +1,60 @@
+---
+import Base from "../../layouts/Base.astro";
+import { Image } from "astro:assets";
+import { getCollection, render } from "astro:content";
+import type { SceneId } from "../../data/scenes.ts";
+
+export async function getStaticPaths() {
+  const all = await getCollection("projects");
+  const projects = all.filter((p) => !p.data.draft).sort((a, b) => a.data.order - b.data.order);
+  return projects.map((project, i) => ({
+    params: { slug: project.id },
+    props: { project, next: projects[(i + 1) % projects.length] },
+  }));
+}
+
+const { project, next } = Astro.props;
+const d = project.data;
+const slug = project.id;
+const { Content } = await render(project);
+
+const kindLabels: Record<string, string> = {
+  product: "Product",
+  "open-source": "Open source",
+  fork: "Fork",
+  work: "Client work",
+  experiment: "Experiment",
+};
+const hasLinks = Boolean(d.links.repo || d.links.live || d.links.download);
+---
+<Base title={d.title} description={d.tagline} scenes={[d.scene as SceneId]} route="site" current="work">
+  <div class="page" data-scene={d.scene} data-stop="work">
+    <header class:list={["postcard", "glass", "page__head", !d.shot && "postcard--text"]} style={`view-transition-name: project-${slug}`} aria-labelledby={`p-${slug}`}>
+      {d.shot && (
+        <figure class="postcard__media">
+          <Image class="shot" src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 1024px) 34rem, 92vw" />
+        </figure>
+      )}
+      <div class="postcard__body">
+        <p class="eyebrow">{kindLabels[d.kind]} · {d.year}{d.status && <span class="eyebrow__status">{d.status}</span>}</p>
+        <h1 class="postcard__title" id={`p-${slug}`}>{d.title}</h1>
+        <p class="postcard__tagline">{d.tagline}</p>
+        <ul class="chips" aria-label="Built with">{d.stack.map((s) => <li class="chip">{s}</li>)}</ul>
+        {hasLinks && (
+          <div class="actions actions--small">
+            {d.links.repo && <a class="btn btn--small" href={d.links.repo} rel="noopener">GitHub <span aria-hidden="true">↗</span></a>}
+            {d.links.live && <a class="btn btn--small" href={d.links.live} rel="noopener">Visit <span aria-hidden="true">↗</span></a>}
+            {d.links.download && <a class="btn btn--small" href={d.links.download} rel="noopener">Download <span aria-hidden="true">↗</span></a>}
+          </div>
+        )}
+      </div>
+    </header>
+    <article class="sheet glass prose">
+      <Content />
+    </article>
+    <nav class="page__nav" aria-label="Projects">
+      <a class="link-back" href="/projects">All projects</a>
+      <a class="link-arrow" href={`/projects/${next.id}`}>Next: {next.data.title}</a>
+    </nav>
+  </div>
+</Base>

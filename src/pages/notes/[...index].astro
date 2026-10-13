@@ -1,0 +1,36 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const all = await getCollection("notes").catch(() => []);
+  const hasNotes = all.some((n) => !n.data.draft);
+  return hasNotes ? [{ params: { index: undefined } }] : [];
+}
+
+const all = await getCollection("notes").catch(() => []);
+const notes = all
+  .filter((n) => !n.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const dateFmt = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "short", day: "numeric" });
+---
+<Base title="Field notes" scenes={["kyoto"]} route="site" current="notes">
+  <div class="page" data-scene="kyoto" data-stop="notes">
+    <header class="card glass page__head" aria-labelledby="notes-title">
+      <p class="eyebrow">Notes</p>
+      <h1 class="title" id="notes-title">Field notes</h1>
+    </header>
+    <div class="sheet glass">
+      <ul class="notes">
+        {notes.map((note) => (
+          <li>
+            <a class="note-link" href={`/notes/${note.id}`}>
+              <span class="note-link__title">{note.data.title}</span>
+              <time class="note-link__date" datetime={note.data.date.toISOString()}>{dateFmt.format(note.data.date)}</time>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</Base>

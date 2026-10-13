@@ -1,0 +1,64 @@
+---
+import { scenes, nightScenes, photoSrc, photoSrcset } from "../data/scenes.ts";
+import type { SceneId } from "../data/scenes.ts";
+
+interface Props {
+  scenes: SceneId[];
+}
+const { scenes: pageScenes } = Astro.props;
+
+const expanded: SceneId[] = [];
+for (const id of pageScenes) {
+  if (!expanded.includes(id)) expanded.push(id);
+  const night = nightScenes[id];
+  if (night && !expanded.includes(night)) expanded.push(night);
+}
+const first = scenes[pageScenes[0]];
+---
+<div class="scenery" aria-hidden="true" style={`--wash: ${first.color}`}>
+  <div class="scenery__wash"></div>
+  {expanded.map((id) => {
+    const scene = scenes[id];
+    const night = nightScenes[id];
+    return (
+      <img
+        class="scenery__img"
+        alt=""
+        decoding="async"
+        sizes="100vw"
+        data-scene={id}
+        data-night={night ?? undefined}
+        data-accent={scene.accent}
+        data-color={scene.color}
+        data-srcset={photoSrcset(scene)}
+        data-src={photoSrc(scene, 2400)}
+        style={`--focal: ${scene.focal}; --wash: ${scene.color}`}
+      />
+    );
+  })}
+  <noscript>
+    <img class="scenery__img is-active" src={photoSrc(first, 2400)} alt="" style={`--focal: ${first.focal}`} />
+  </noscript>
+  <div class="scenery__scrim"></div>
+</div>
+<script is:inline>
+  try {
+    var root = document.documentElement;
+    if (root.dataset.scenery !== "off") {
+      var img = document.querySelector(".scenery__img");
+      if (img && root.dataset.daylight === "night" && img.dataset.night) {
+        img = document.querySelector('.scenery__img[data-scene="' + img.dataset.night + '"]') || img;
+      }
+      if (img) {
+        img.setAttribute("sizes", "100vw");
+        if (img.dataset.srcset) img.setAttribute("srcset", img.dataset.srcset);
+        if (img.dataset.src) img.setAttribute("src", img.dataset.src);
+        img.setAttribute("fetchpriority", "high");
+        img.classList.add("is-active");
+        if (img.dataset.accent) root.style.setProperty("--accent", img.dataset.accent);
+        var sceneryEl = document.querySelector(".scenery");
+        if (sceneryEl && img.dataset.color) sceneryEl.style.setProperty("--wash", img.dataset.color);
+      }
+    }
+  } catch (e) {}
+</script>

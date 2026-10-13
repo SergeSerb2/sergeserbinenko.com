@@ -1,0 +1,111 @@
+---
+import "../styles/global.css";
+import Scenery from "../components/Scenery.astro";
+import Places from "../components/Places.astro";
+import Topbar from "../components/Topbar.astro";
+import Route from "../components/Route.astro";
+import displayFont from "@fontsource-variable/newsreader/files/newsreader-latin-standard-normal.woff2?url";
+import { site } from "../data/site.ts";
+import { scenes, nightScenes, photoSrcset } from "../data/scenes.ts";
+import type { SceneId } from "../data/scenes.ts";
+
+interface Props {
+  title: string;
+  description?: string;
+  scenes: SceneId[];
+  route: "home" | "site";
+  current?: string;
+}
+const { title, description = site.description, scenes: pageScenes, route, current } = Astro.props;
+
+const displayTitle = title === "Serge Serbinenko — Software engineer" ? title : `${title} · Serge Serbinenko`;
+const pathname = Astro.url.pathname;
+const canonical = pathname === "/" ? `${site.url}/` : `${site.url}${pathname.replace(/\/$/, "")}`;
+const ogImage = `${site.url}/og.jpg`;
+
+const firstId = pageScenes[0];
+const daySrcset = photoSrcset(scenes[firstId]);
+const nightId = nightScenes[firstId];
+const nightSrcset = nightId ? photoSrcset(scenes[nightId]) : daySrcset;
+---
+<!doctype html>
+<html lang="en" data-scenery="auto" data-daylight="day" data-tone="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{displayTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={displayTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#e9eef0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0d1216" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="sitemap" href="/sitemap-index.xml" />
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
+  <link rel="preconnect" href="https://images.unsplash.com" />
+  <link rel="preload" href={displayFont} as="font" type="font/woff2" crossorigin />
+  <script is:inline define:vars={{ daySrcset, nightSrcset }}>
+    // Keep in sync with src/scripts/daylight.ts
+    try {
+      var mode = "auto";
+      try { var s = localStorage.getItem("scenery"); if (s === "auto" || s === "day" || s === "night" || s === "off") mode = s; } catch (e) {}
+      var h = new Date().getHours();
+      var daylight = mode === "night" ? "night" : mode === "day" ? "day" : (h >= 19 || h < 6 ? "night" : "day");
+      var prefersDark = false;
+      try { prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) {}
+      var tone = (mode !== "off" && daylight === "night") || prefersDark ? "dark" : "light";
+      var el = document.documentElement;
+      el.dataset.scenery = mode; el.dataset.daylight = daylight; el.dataset.tone = tone;
+      if (mode !== "off") {
+        var link = document.createElement("link");
+        link.rel = "preload"; link.as = "image";
+        link.setAttribute("imagesrcset", daylight === "night" ? nightSrcset : daySrcset);
+        link.setAttribute("imagesizes", "100vw");
+        link.setAttribute("fetchpriority", "high");
+        document.head.appendChild(link);
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <Scenery scenes={pageScenes} />
+  <Topbar />
+  <Route variant={route} current={current} />
+  <main id="main" class="main"><slot /></main>
+  <Places scenes={pageScenes} />
+  <script is:inline>
+    try {
+      var activeImg = document.querySelector(".scenery__img.is-active");
+      var placeId = activeImg && activeImg.dataset.scene;
+      if (!placeId) {
+        var firstImg = document.querySelector(".scenery__img");
+        if (firstImg) {
+          placeId = firstImg.dataset.scene;
+          if (document.documentElement.dataset.daylight === "night" && firstImg.dataset.night) placeId = firstImg.dataset.night;
+        }
+      }
+      if (placeId) {
+        document.querySelectorAll(".place[data-scene]").forEach(function (place) {
+          var on = place.dataset.scene === placeId;
+          place.classList.toggle("is-active", on);
+          if (on) place.removeAttribute("inert");
+          else place.setAttribute("inert", "");
+        });
+      }
+    } catch (e) {}
+  </script>
+  <script>
+    import "../scripts/scenery.ts";
+    import "../scripts/ui.ts";
+  </script>
+</body>
+</html>
