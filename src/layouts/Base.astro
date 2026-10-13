@@ -18,7 +18,7 @@ interface Props {
 }
 const { title, description = site.description, scenes: pageScenes, route, current } = Astro.props;
 
-const displayTitle = title === "Serge Serbinenko — Software engineer" ? title : `${title} · Serge Serbinenko`;
+const displayTitle = title.startsWith(site.name) ? title : `${title} · ${site.name}`;
 const pathname = Astro.url.pathname;
 const canonical = pathname === "/" ? `${site.url}/` : `${site.url}${pathname.replace(/\/$/, "")}`;
 const ogImage = `${site.url}/og.jpg`;

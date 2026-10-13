@@ -95,6 +95,7 @@
 }
 
 .tile__cover {
+  position: relative;
   display: block;
   aspect-ratio: 16 / 9;
   overflow: hidden;
@@ -112,6 +113,18 @@
 
 .tile:hover .tile__cover img {
   scale: 1.05;
+}
+
+/* Every photo on the page is credited, not just the backdrop. */
+.tile__credit {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.5rem;
+  left: 0.6rem;
+  color: oklch(98% 0.005 240);
+  font: 400 0.6875rem/1.3 var(--font-sans);
+  text-align: right;
+  text-shadow: 0 1px 8px oklch(10% 0.02 245 / 0.7);
 }
 
 .tile__body {
