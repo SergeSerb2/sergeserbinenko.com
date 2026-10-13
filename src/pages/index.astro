@@ -1,0 +1,115 @@
+---
+import Base from "../layouts/Base.astro";
+import ProjectPostcard from "../components/ProjectPostcard.astro";
+import Trail from "../components/Trail.astro";
+import Mail from "../components/Mail.astro";
+import { getCollection } from "astro:content";
+import { site } from "../data/site.ts";
+import { experience } from "../data/resume.ts";
+import type { SceneId } from "../data/scenes.ts";
+
+const allProjects = await getCollection("projects");
+const featured = allProjects
+  .filter((p) => !p.data.draft && p.data.featured)
+  .sort((a, b) => a.data.order - b.data.order);
+
+const allNotes = await getCollection("notes").catch(() => []);
+const notes = allNotes
+  .filter((n) => !n.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const hasNotes = notes.length > 0;
+const latestNotes = notes.slice(0, 3);
+
+const pageScenes: SceneId[] = [
+  "tofino",
+  "moraine",
+  "lofoten",
+  ...featured.map((p) => p.data.scene as SceneId),
+  "skye",
+  ...(hasNotes ? (["kyoto"] as SceneId[]) : []),
+  "tofino-dusk",
+];
+
+const contactNumber = hasNotes ? "05" : "04";
+const year = new Date().getFullYear();
+const dateFmt = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "short", day: "numeric" });
+---
+<Base title="Serge Serbinenko — Machine learning engineer" scenes={pageScenes} route="home">
+  <section class="stop" id="home" data-scene="tofino" data-stop="home" aria-labelledby="home-title">
+    <div class="hero glass">
+      <p class="eyebrow hero__where"><span class="pulse" aria-hidden="true"></span>{site.location} · <time class="hero__clock" data-clock>Vancouver time</time></p>
+      <h1 class="hero__name" id="home-title">Serge <span>Serbinenko</span></h1>
+      <p class="hero__lead">Machine learning engineer in Vancouver. I build AI tools and native apps, and I like software that is calm, fast, and good to look at.</p>
+      <div class="actions">
+        <a class="btn btn--solid" href="#work">See the work</a>
+        <a class="btn" href="/resume">Résumé</a>
+        <a class="btn" href="#contact">Say hello</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="stop" id="now" data-scene="moraine" data-stop="now" aria-labelledby="now-title">
+    <div class="card glass">
+      <p class="eyebrow">01 — Now</p>
+      <h2 class="title" id="now-title">Right now</h2>
+      <div class="prose">
+        <p>By day I am a machine learning engineer at PressReader, the platform behind thousands of newspapers and magazines worldwide. I also build a broadcast-monitoring platform for a private client.</p>
+        <p>The rest of the time I build the tools I want to use, mostly in TypeScript, Swift, and Rust, with coding agents doing a lot of the typing. The places below are a tour of that.</p>
+      </div>
+      <dl class="facts">
+        <div class="facts__row"><dt>Based in</dt><dd>{site.location}</dd></div>
+        <div class="facts__row"><dt>Working at</dt><dd>{experience[0]?.org}</dd></div>
+        <div class="facts__row"><dt>Speaks</dt><dd>{site.languages.join(", ")}</dd></div>
+        <div class="facts__row"><dt>Off the clock</dt><dd>Coaching track &amp; field</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="stop" id="work" data-scene="lofoten" data-stop="work" aria-labelledby="work-title">
+    <div class="card glass">
+      <p class="eyebrow">02 — Work</p>
+      <h2 class="title" id="work-title">Places I’ve built</h2>
+      <p class="lead">Every project here gets its own place. Keep scrolling to travel between them.</p>
+      <a class="link-arrow" href="/projects">All projects</a>
+    </div>
+  </section>
+
+  {featured.map((project, i) => (
+    <section class="stop stop--project" id={`work-${project.id}`} data-scene={project.data.scene} data-stop="work" aria-labelledby={`p-${project.id}`}>
+      <ProjectPostcard project={project} index={i} total={featured.length} />
+    </section>
+  ))}
+
+  <section class="stop" id="resume" data-scene="skye" data-stop="resume" aria-labelledby="resume-title">
+    <div class="card glass card--wide">
+      <p class="eyebrow">03 — Résumé</p>
+      <h2 class="title" id="resume-title">The route so far</h2>
+      <Trail />
+      <div class="actions"><a class="btn btn--solid" href="/resume">Full résumé</a></div>
+    </div>
+  </section>
+
+  {hasNotes && (
+    <section class="stop" id="notes" data-scene="kyoto" data-stop="notes" aria-labelledby="notes-title">
+      <div class="card glass">
+        <p class="eyebrow">04 — Notes</p>
+        <h2 class="title" id="notes-title">Field notes</h2>
+        <ul class="notes">
+          {latestNotes.map((note) => (
+            <li>
+              <a class="note-link" href={`/notes/${note.id}`}>
+                <span class="note-link__title">{note.data.title}</span>
+                <time class="note-link__date" datetime={note.data.date.toISOString()}>{dateFmt.format(note.data.date)}</time>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  <section class="stop" id="contact" data-scene="tofino-dusk" data-stop="contact" aria-labelledby="contact-title">
+    <Mail number={contactNumber} />
+    <footer class="foot glass"><p>© {year} Serge Serbinenko · Built with Astro · Photos from Unsplash</p></footer>
+  </section>
+</Base>

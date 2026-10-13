@@ -1,0 +1,37 @@
+---
+import Base from "../../layouts/Base.astro";
+import ProjectTile from "../../components/ProjectTile.astro";
+import { getCollection } from "astro:content";
+
+const all = await getCollection("projects");
+const projects = all.filter((p) => !p.data.draft).sort((a, b) => a.data.order - b.data.order);
+
+const kindOrder = ["product", "open-source", "fork", "work", "experiment"] as const;
+const kindPlural: Record<string, string> = {
+  product: "Products",
+  "open-source": "Open source",
+  fork: "Forks I’ve reshaped",
+  work: "Client work",
+  experiment: "Experiments",
+};
+const groups = kindOrder
+  .map((kind) => ({ kind, items: projects.filter((p) => p.data.kind === kind) }))
+  .filter((g) => g.items.length > 0);
+---
+<Base title="All projects" scenes={["lofoten"]} route="site" current="work">
+  <div class="page" data-scene="lofoten" data-stop="work">
+    <header class="card glass page__head" aria-labelledby="projects-title">
+      <p class="eyebrow">Work</p>
+      <h1 class="title" id="projects-title">All projects</h1>
+      <p class="lead">Things I built, forked, and reshaped. Pick a place to start.</p>
+    </header>
+    {groups.map((group) => (
+      <section class="group" aria-labelledby={`group-${group.kind}`}>
+        <h2 class="group__title" id={`group-${group.kind}`}>{kindPlural[group.kind]}</h2>
+        <div class="tiles">
+          {group.items.map((project) => <ProjectTile project={project} />)}
+        </div>
+      </section>
+    ))}
+  </div>
+</Base>

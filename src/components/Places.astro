@@ -1,0 +1,32 @@
+---
+import { scenes, nightScenes, photographerHref, unsplashHref } from "../data/scenes.ts";
+import type { SceneId } from "../data/scenes.ts";
+
+interface Props {
+  scenes: SceneId[];
+}
+const { scenes: pageScenes } = Astro.props;
+
+const expanded: SceneId[] = [];
+for (const id of pageScenes) {
+  if (!expanded.includes(id)) expanded.push(id);
+  const night = nightScenes[id];
+  if (night && !expanded.includes(night)) expanded.push(night);
+}
+const firstId = pageScenes[0];
+---
+<aside class="places" aria-label="Photo credits">
+  {expanded.map((id) => {
+    const scene = scenes[id];
+    const active = id === firstId;
+    return (
+      <div class:list={["place", active && "is-active"]} data-scene={id} inert={!active || undefined}>
+        <p class="place__coords">{scene.coords}<span class="place__time" data-tz={scene.tz}></span></p>
+        <p class="place__name">{scene.place}</p>
+        <p class="place__credit">
+          Photo by <a href={photographerHref(scene)} rel="noopener">{scene.photographer}</a> on <a href={unsplashHref} rel="noopener">Unsplash</a>
+        </p>
+      </div>
+    );
+  })}
+</aside>

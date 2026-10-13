@@ -1,0 +1,9 @@
+node_modules
+dist
+.astro
+.wrangler
+.env*
+.DS_Store
+
+# Private research notes (project inventory names private repos and clients)
+research/
