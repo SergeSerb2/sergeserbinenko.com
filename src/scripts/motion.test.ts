@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { lerp, clampUnit, pointerUnit, glareOffset, wordTokens } from "./motion.ts";
+import { lerp, clampUnit, pointerUnit, localPoint, glareOffset, wordTokens } from "./motion.ts";
 
 test("lerp moves a fraction toward the target", () => {
   assert.equal(lerp(0, 100, 0.18), 18);
@@ -28,6 +28,16 @@ test("glareOffset returns pixel strings clamped to the rect", () => {
   assert.deepEqual(glareOffset(400, 300, rect), { gx: "200px", gy: "100px" });
   assert.deepEqual(glareOffset(0, 0, rect), { gx: "0px", gy: "0px" });
   assert.deepEqual(glareOffset(10, 10, { left: 0, top: 0, width: 0, height: 0 }), { gx: "0px", gy: "0px" });
+});
+
+test("localPoint undoes zoom: on-screen offsets map back to layout pixels", () => {
+  // A 200x100 element drawn at 1.2x zoom covers 240x120 on screen.
+  const rect = { left: 100, top: 50, width: 240, height: 120 };
+  assert.deepEqual(localPoint(220, 110, rect, 200, 100), { x: 100, y: 50 });
+  assert.deepEqual(glareOffset(340, 170, rect, 200, 100), { gx: "200px", gy: "100px" });
+  assert.deepEqual(glareOffset(400, 300, rect, 200, 100), { gx: "200px", gy: "100px" });
+  // Without a layout size, it falls back to the on-screen box.
+  assert.deepEqual(localPoint(150, 60, rect), { x: 50, y: 10 });
 });
 
 test("wordTokens keeps whitespace separate from words", () => {

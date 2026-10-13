@@ -23,10 +23,25 @@ export function pointerUnit(clientX: number, clientY: number, w: number, h: numb
   };
 }
 
-/** Position within a rect as pixel strings clamped to its box, e.g. "37px". */
-export function glareOffset(clientX: number, clientY: number, rect: { left: number; top: number; width: number; height: number }): { gx: string; gy: string } {
-  const px = Math.min(Math.max(0, rect.width), Math.max(0, clientX - rect.left));
-  const py = Math.min(Math.max(0, rect.height), Math.max(0, clientY - rect.top));
+type Rect = { left: number; top: number; width: number; height: number };
+
+/**
+ * Pointer position inside an element, in the element's own CSS pixels.
+ * `rect` is the on-screen box; `width` and `height` are the layout size
+ * (offsetWidth/offsetHeight). The window is zoomed on big screens, so the
+ * two differ, and offsets written back into CSS must be divided by the ratio.
+ */
+export function localPoint(clientX: number, clientY: number, rect: Rect, width = rect.width, height = rect.height): { x: number; y: number } {
+  const sx = rect.width > 0 && width > 0 ? rect.width / width : 1;
+  const sy = rect.height > 0 && height > 0 ? rect.height / height : 1;
+  return { x: (clientX - rect.left) / sx, y: (clientY - rect.top) / sy };
+}
+
+/** Glare position as pixel strings clamped to the element's box, e.g. "37px". */
+export function glareOffset(clientX: number, clientY: number, rect: Rect, width = rect.width, height = rect.height): { gx: string; gy: string } {
+  const { x, y } = localPoint(clientX, clientY, rect, width, height);
+  const px = Math.min(Math.max(0, width), Math.max(0, x));
+  const py = Math.min(Math.max(0, height), Math.max(0, y));
   return { gx: `${Math.round(px)}px`, gy: `${Math.round(py)}px` };
 }
 
@@ -191,9 +206,9 @@ function pointerFrame(): void {
   }
   const win = $(".window");
   if (win && sheenLit && lastClient.x >= 0) {
-    const rect = win.getBoundingClientRect();
-    sheenTarget.x = lastClient.x - rect.left;
-    sheenTarget.y = lastClient.y - rect.top;
+    const target = localPoint(lastClient.x, lastClient.y, win.getBoundingClientRect(), win.offsetWidth, win.offsetHeight);
+    sheenTarget.x = target.x;
+    sheenTarget.y = target.y;
     sheen.x = lerp(sheen.x, sheenTarget.x, 0.18);
     sheen.y = lerp(sheen.y, sheenTarget.y, 0.18);
     win.style.setProperty("--mx", `${sheen.x.toFixed(1)}px`);
@@ -243,7 +258,7 @@ function flushGlare(): void {
   if (!glarePending || document.hidden) return;
   const { el, x, y } = glarePending;
   glarePending = null;
-  const { gx, gy } = glareOffset(x, y, el.getBoundingClientRect());
+  const { gx, gy } = glareOffset(x, y, el.getBoundingClientRect(), el.offsetWidth, el.offsetHeight);
   // The first position on entry is instant. Later ones ease (CSS), so the
   // glare trails the pointer slightly and catches up when it stops.
   if (el.classList.contains("is-hover")) el.classList.add("is-tracking");
@@ -416,9 +431,9 @@ export function initMotion(): void {
           lastClient = { x: e.clientX, y: e.clientY };
           if (!sheenLit) {
             sheenLit = true;
-            const rect = win.getBoundingClientRect();
-            sheen.x = e.clientX - rect.left;
-            sheen.y = e.clientY - rect.top;
+            const start = localPoint(e.clientX, e.clientY, win.getBoundingClientRect(), win.offsetWidth, win.offsetHeight);
+            sheen.x = start.x;
+            sheen.y = start.y;
             win.classList.add("is-lit");
           }
           ensurePointerLoop();
