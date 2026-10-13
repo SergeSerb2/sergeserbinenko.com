@@ -12,7 +12,7 @@ const projects = allProjects
 <App title="Projects" thread="projects" scene="skye" crumb="All projects">
   <div class="projects">
     <h1 class="title">All projects</h1>
-    <p class="lead">Things I built, forked, and reshaped. Pick a place to start.</p>
+    <p class="lead">Things I built, forked, and reshaped.</p>
     <div class="cards projects-grid">{projects.map((p) => <ProjectCard project={p} />)}</div>
     <CardCredits projects={projects} />
   </div>

@@ -16,7 +16,7 @@ export function isDarkColor(hex: string): boolean {
 }
 
 /**
- * Glass custom-property values for a scene color: the darker the place, the more opaque
+ * Glass custom-property values for a scene color: the darker the scenery, the more opaque
  * the glass, so small gray labels keep their contrast over it.
  */
 export function glassForColor(hex: string): { glass: string; side: string } {

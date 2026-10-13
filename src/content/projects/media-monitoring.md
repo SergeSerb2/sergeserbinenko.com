@@ -20,6 +20,6 @@ The platform follows what is said on radio and TV, around the clock, and turns i
 - **Ingest.** Live radio and TV streams are recorded 24/7, with health checks on every stream.
 - **Transcription.** Speech-to-text runs locally first, with a cloud fallback, so a bad hour on one side does not leave a gap.
 - **Understanding.** Language models split transcripts into segments and write short summaries.
-- **One dashboard.** Everything lands in a single place to search and review.
+- **One dashboard.** Everything lands in one view to search and review.
 
 I wrote most of the system and run its delivery: staging deploys on every merge to main, production on Google Cloud Run.

@@ -42,7 +42,6 @@ const kicker = [kindLabels[d.kind], d.year, d.status].filter(Boolean).join(" · 
             <dt>Kind</dt><dd>{kindLabels[d.kind]}</dd>
             <dt>Year</dt><dd>{d.year}</dd>
             {d.status && <><dt>Status</dt><dd>{d.status}</dd></>}
-            <dt>Place</dt><dd>{scene.place}</dd>
           </dl>
         )}
         <div class="actions">
@@ -54,11 +53,9 @@ const kicker = [kindLabels[d.kind], d.year, d.status].filter(Boolean).join(" · 
         </div>
       </div>
       {d.shot ? (
-        <figure class="shot"><Image src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 701px) 480px, 92vw" /></figure>
+        <figure class="shot" data-glare><Image src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 701px) 480px, 92vw" /></figure>
       ) : (
-        <figure class="shot place" style={`background-image:url('${photoSrc(scene, 760, 950)}');background-position:${scene.focal}`}>
-          <figcaption>{scene.place}<small>{scene.coords}</small></figcaption>
-        </figure>
+        <figure class="shot scene-shot" data-glare style={`background-image:url('${photoSrc(scene, 760, 950)}');background-position:${scene.focal}`}></figure>
       )}
     </div>
     <div class="prose project-story">
