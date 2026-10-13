@@ -7,11 +7,6 @@ export async function GET(): Promise<Response> {
   const projects = allProjects
     .filter((p) => !p.data.draft)
     .sort((a, b) => a.data.order - b.data.order);
-  const allNotes = await getCollection("notes").catch(() => []);
-  const notes = allNotes
-    .filter((n) => !n.data.draft)
-    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
-
   const lines: string[] = [
     "# Serge Serbinenko",
     "",
@@ -21,6 +16,7 @@ export async function GET(): Promise<Response> {
     "",
     "## Projects",
     "",
+    `- [All projects](${site.url}/projects): Every project on one page.`,
     ...projects.map((p) => `- [${p.data.title}](${site.url}/projects/${p.id}): ${p.data.tagline}`),
     "",
     "## Résumé",
@@ -30,13 +26,10 @@ export async function GET(): Promise<Response> {
     "",
   ];
 
-  if (notes.length > 0) {
-    lines.push("## Notes", "", ...notes.map((n) => `- [${n.data.title}](${site.url}/notes/${n.id}): ${n.data.description}`), "");
-  }
-
   lines.push(
     "## Contact",
     "",
+    `- [Contact](${site.url}/contact): Say hello.`,
     `- Email: ${site.email}`,
     `- GitHub: ${site.github}`,
     ...(site.linkedin ? [`- LinkedIn: ${site.linkedin}`] : []),

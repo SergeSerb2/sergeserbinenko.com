@@ -1,145 +1,32 @@
 ---
-import Base from "../layouts/Base.astro";
-import ProjectVoyage from "../components/ProjectVoyage.astro";
-import Trail from "../components/Trail.astro";
-import Mail from "../components/Mail.astro";
+import App from "../layouts/App.astro";
+import Composer from "../components/Composer.astro";
+import ProjectCard from "../components/ProjectCard.astro";
 import { getCollection } from "astro:content";
-import { site } from "../data/site.ts";
-import { experience } from "../data/resume.ts";
-import { scenes } from "../data/scenes.ts";
-import type { SceneId } from "../data/scenes.ts";
 
 const allProjects = await getCollection("projects");
-const featured = allProjects
-  .filter((p) => !p.data.draft && p.data.featured)
+const projects = allProjects
+  .filter((p) => !p.data.draft)
   .sort((a, b) => a.data.order - b.data.order);
-
-const allNotes = await getCollection("notes").catch(() => []);
-const notes = allNotes
-  .filter((n) => !n.data.draft)
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
-const hasNotes = notes.length > 0;
-const latestNotes = notes.slice(0, 3);
-
-const pageScenes: SceneId[] = [
-  "tofino",
-  "moraine",
-  "lofoten",
-  ...featured.map((p) => p.data.scene as SceneId),
-  "skye",
-  ...(hasNotes ? (["kyoto"] as SceneId[]) : []),
-  "tofino-dusk",
-];
-
-const resumeIndex = 3 + featured.length;
-const notesIndex = resumeIndex + 1;
-const contactIndex = hasNotes ? notesIndex + 1 : resumeIndex + 1;
-
-const tickerScenes = pageScenes.filter((id, i) => i === 0 || id !== pageScenes[i - 1]);
-
-const firstLine = Array.from("Serge");
-const secondLine = Array.from("Serbinenko");
-
-const contactNumber = hasNotes ? "05" : "04";
-const year = new Date().getFullYear();
-const dateFmt = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "short", day: "numeric" });
+const recent = projects.slice(0, 3);
 ---
-<Base title="Serge Serbinenko — Machine learning engineer" scenes={pageScenes} route="home">
-  <section class="stop stop--hero" id="home" data-scene="tofino" data-stop="home" data-stop-index="0" style="view-timeline-name: --stop-0" aria-labelledby="home-title">
-    <div class="stop__word" aria-hidden="true">Tofino</div>
-    <div class="pass">
-      <div class="pass__main glass">
-        <p class="eyebrow hero__where"><span class="pulse" aria-hidden="true"></span>{site.location} · <time class="hero__clock" data-clock>Vancouver time</time></p>
-        <h1 class="hero__name" id="home-title" aria-label="Serge Serbinenko">
-          <span class="hero__line" aria-hidden="true">{firstLine.map((ch, i) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</span>
-          <span class="hero__line" aria-hidden="true">{secondLine.map((ch, i) => <span class="ch" style={`--i:${firstLine.length + i}`}>{ch}</span>)}</span>
-        </h1>
-        <p class="hero__lead">Machine learning engineer in Vancouver. I build AI tools and native apps, and I like software that is calm, fast, and good to look at.</p>
-        <div class="actions">
-          <a class="btn btn--solid" href="#work">See the work</a>
-          <a class="btn" href="/resume">Résumé</a>
-          <a class="btn" href="#contact">Say hello</a>
-        </div>
-      </div>
-      <div class="pass__stub glass" aria-hidden="true">
-        <div class="pass__field"><span class="pass__k">From</span><span class="pass__v">YVR</span></div>
-        <div class="pass__field"><span class="pass__k">To</span><span class="pass__v">Anywhere</span></div>
-        <div class="pass__field"><span class="pass__k">Flight</span><span class="pass__v">SS 01</span></div>
-        <div class="pass__field"><span class="pass__k">Boards</span><span class="pass__v">Now</span></div>
-        <span class="pass__barcode"></span>
-      </div>
-    </div>
-    <div class="ticker" aria-hidden="true">
-      <div class="ticker__track">
-        {[0, 1].map(() => tickerScenes.map((id) => <span class="ticker__item"><span class="ticker__place">{scenes[id].word}</span><span class="ticker__coords">{scenes[id].coords}</span></span>))}
-      </div>
-    </div>
-  </section>
-
-  <section class="stop stop--now" id="now" data-scene="moraine" data-stop="now" data-stop-index="1" style="view-timeline-name: --stop-1" aria-labelledby="now-title">
-    <div class="stop__word" aria-hidden="true">Moraine</div>
-    <div class="now">
-      <p class="eyebrow">01 — Now</p>
-      <h2 class="title now__title" id="now-title">Right now</h2>
-      <div class="now__card glass"><div class="prose">
-        <p>By day I am a machine learning engineer at PressReader, the platform behind thousands of newspapers and magazines worldwide. I also build a broadcast-monitoring platform for a private client.</p>
-        <p>The rest of the time I build the tools I want to use, mostly in TypeScript, Swift, and Rust, with coding agents doing a lot of the typing. The places below are a tour of that.</p>
-      </div></div>
-      <ul class="pills" aria-label="Quick facts">
-        <li class="pill glass" style="--depth: 1"><span class="pill__k">Based in</span><span class="pill__v">{site.location}</span></li>
-        <li class="pill glass" style="--depth: 3"><span class="pill__k">Working at</span><span class="pill__v">{experience[0]?.org}</span></li>
-        <li class="pill glass" style="--depth: 2"><span class="pill__k">Speaks</span><span class="pill__v">{site.languages.join(", ")}</span></li>
-        <li class="pill glass" style="--depth: 4"><span class="pill__k">Off the clock</span><span class="pill__v">Coaching track &amp; field</span></li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="stop stop--intro" id="work" data-scene="lofoten" data-stop="work" data-stop-index="2" style="view-timeline-name: --stop-2" aria-labelledby="work-title">
-    <div class="stop__word" aria-hidden="true">Lofoten</div>
-    <div class="intro">
-      <p class="eyebrow">02 — Work</p>
-      <h2 class="title intro__title" id="work-title">Places I’ve built</h2>
-      <p class="lead intro__lead">Every project here gets its own place. Keep scrolling to travel between them.</p>
-      <a class="link-arrow" href="/projects">All projects</a>
-    </div>
-  </section>
-
-  {featured.map((project, i) => <ProjectVoyage project={project} index={i} total={featured.length} stopIndex={3 + i} />)}
-
-  <section class="stop" id="resume" data-scene="skye" data-stop="resume" data-stop-index={resumeIndex} style={`view-timeline-name: --stop-${resumeIndex}`} aria-labelledby="resume-title">
-    <div class="stop__word" aria-hidden="true">{scenes["skye"].word}</div>
-    <div class="card glass card--wide card--map">
-      <span class="topo" aria-hidden="true"></span>
-      <p class="eyebrow">03 — Résumé</p>
-      <h2 class="title" id="resume-title">The route so far</h2>
-      <Trail />
-      <div class="actions"><a class="btn btn--solid" href="/resume">Full résumé</a></div>
-    </div>
-  </section>
-
-  {hasNotes && (
-    <section class="stop" id="notes" data-scene="kyoto" data-stop="notes" data-stop-index={notesIndex} style={`view-timeline-name: --stop-${notesIndex}`} aria-labelledby="notes-title">
-      <div class="stop__word" aria-hidden="true">{scenes["kyoto"].word}</div>
-      <div class="card glass">
-        <p class="eyebrow">04 — Notes</p>
-        <h2 class="title" id="notes-title">Field notes</h2>
-        <ul class="notes">
-          {latestNotes.map((note) => (
-            <li>
-              <a class="note-link" href={`/notes/${note.id}`}>
-                <span class="note-link__title">{note.data.title}</span>
-                <time class="note-link__date" datetime={note.data.date.toISOString()}>{dateFmt.format(note.data.date)}</time>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
+<App title="Serge Serbinenko" thread="about" scene="tofino" crumb="About">
+  <div class="about">
+    <h1 class="hello">Hi, I&#8217;m Serge.</h1>
+    <p class="lead">Machine learning engineer in Vancouver. I build AI tools and native apps, and I like software that is calm, fast, and good to look at.</p>
+    <Composer
+      placeholder="Ask about my work, or pick a place below"
+      label="Ask about my work"
+      subject="A question about your work"
+      chips={[
+        { label: "Projects", href: "/projects" },
+        { label: "Résumé", href: "/resume" },
+        { label: "Say hello", href: "/contact" },
+      ]}
+    />
+    <section class="recent">
+      <h2 class="section-label"><span>Recent threads</span><a href="/projects">All {projects.length} projects</a></h2>
+      <div class="cards">{recent.map((p) => <ProjectCard project={p} />)}</div>
     </section>
-  )}
-
-  <section class="stop" id="contact" data-scene="tofino-dusk" data-stop="contact" data-stop-index={contactIndex} style={`view-timeline-name: --stop-${contactIndex}`} aria-labelledby="contact-title">
-    <div class="stop__word" aria-hidden="true">{scenes["tofino-dusk"].word}</div>
-    <Mail number={contactNumber} />
-    <footer class="foot glass"><p>© {year} Serge Serbinenko · Built with Astro · Photos from Unsplash</p></footer>
-  </section>
-</Base>
+  </div>
+</App>

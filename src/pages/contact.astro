@@ -1,0 +1,24 @@
+---
+import App from "../layouts/App.astro";
+import Composer from "../components/Composer.astro";
+import { site } from "../data/site.ts";
+import { formatTimeInZone } from "../scripts/time.ts";
+
+const now = formatTimeInZone(new Date(), site.timeZone);
+---
+<App title="Contact" thread="contact" scene="lofoten" crumb="Contact">
+  <div class="contact">
+    <h1 class="hello">Say hello.</h1>
+    <p class="lead">It is <span class="clock">{now}</span> in Vancouver. Write in English, Russian, or French.</p>
+    <a class="mail" href={`mailto:${site.email}`}>{site.email}</a>
+    <Composer
+      placeholder="Write a note, it opens in your mail app"
+      label="Write a note"
+      subject="Hello"
+      chips={[
+        { label: "GitHub", href: site.github, external: true },
+        { label: "Résumé", href: "/resume" },
+      ]}
+    />
+  </div>
+</App>

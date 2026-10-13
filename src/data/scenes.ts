@@ -237,18 +237,10 @@ export const scenes = {
 
 export type SceneId = keyof typeof scenes;
 
-/** Day scene -> scene shown instead between 19:00 and 06:00 visitor time. */
-export const nightScenes: Partial<Record<SceneId, SceneId>> = {
-  tofino: "jasper-sky",
-  moraine: "jasper-sky-2",
-  lofoten: "hong-kong",
-  "tofino-dusk": "jasper-sky-3",
-};
-
 const UTM = "utm_source=sergeserbinenko.com&utm_medium=referral";
 
-export function photoSrc(scene: Scene, width: number): string {
-  return `${scene.photo}?auto=format&fit=crop&q=72&w=${width}`;
+export function photoSrc(scene: Scene, width: number, height?: number): string {
+  return `${scene.photo}?auto=format&fit=crop&q=72&w=${width}${height ? `&h=${height}` : ""}`;
 }
 
 export function photoSrcset(scene: Scene): string {

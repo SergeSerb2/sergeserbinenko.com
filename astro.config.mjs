@@ -6,6 +6,7 @@ export default defineConfig({
   site: "https://sergeserbinenko.com",
   output: "static",
   trailingSlash: "ignore",
+  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
   integrations: [sitemap()],
   build: {
     format: "directory",

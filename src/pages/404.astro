@@ -1,14 +1,10 @@
 ---
-import Base from "../layouts/Base.astro";
+import App from "../layouts/App.astro";
 ---
-<Base title="Page not found" scenes={["faroe"]} route="site">
-  <div class="page page--center" data-scene="faroe" data-stop="home" data-stop-index="0" style="view-timeline-name: --stop-0">
-    <div class="stop__word" aria-hidden="true">Faroe</div>
-    <div class="card glass">
-      <p class="eyebrow">404</p>
-      <h1 class="title" id="not-found-title">You’ve wandered off the map.</h1>
-      <p class="lead">This page doesn’t exist, but the view is nice.</p>
-      <div class="actions"><a class="btn btn--solid" href="/">Back to the start</a></div>
-    </div>
+<App title="Page not found" thread="not-found" scene="faroe" crumb="Not found">
+  <div class="contact">
+    <h1 class="hello">This thread doesn&#8217;t exist.</h1>
+    <p class="lead">The page you asked for is not here, but the view is nice.</p>
+    <div class="actions"><a class="btn" href="/">Back to About</a></div>
   </div>
-</Base>
+</App>
