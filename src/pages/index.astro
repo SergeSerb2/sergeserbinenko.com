@@ -2,6 +2,7 @@
 import App from "../layouts/App.astro";
 import Composer from "../components/Composer.astro";
 import ProjectCard from "../components/ProjectCard.astro";
+import CardCredits from "../components/CardCredits.astro";
 import { getCollection } from "astro:content";
 
 const allProjects = await getCollection("projects");
@@ -27,6 +28,7 @@ const recent = projects.slice(0, 3);
     <section class="recent">
       <h2 class="section-label"><span>Recent threads</span><a href="/projects">All {projects.length} projects</a></h2>
       <div class="cards">{recent.map((p) => <ProjectCard project={p} />)}</div>
+      <CardCredits projects={recent} />
     </section>
   </div>
 </App>

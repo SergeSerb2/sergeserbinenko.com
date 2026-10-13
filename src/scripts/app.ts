@@ -180,7 +180,7 @@ function init(): void {
   search?.addEventListener("input", (e) => filter((e.target as HTMLInputElement).value));
   search?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-      const first = document.querySelector<HTMLElement>("#nav .row[data-thread]:not([hidden])");
+      const first = document.querySelector<HTMLElement>("#nav .row:not([hidden])");
       if (first) {
         first.click();
         search.blur();

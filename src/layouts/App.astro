@@ -38,6 +38,7 @@ const threads: Thread[] = [
   { id: "about", title: "About", href: "/", scene: "tofino", group: "Pinned", q: `about ${scenes.tofino.place}`.toLowerCase() },
   { id: "resume", title: "Résumé", href: "/resume", scene: "moraine", group: "Pinned", q: `résumé resume ${scenes.moraine.place}`.toLowerCase() },
   { id: "contact", title: "Contact", href: "/contact", scene: "lofoten", group: "Pinned", q: `contact ${scenes.lofoten.place}`.toLowerCase() },
+  { id: "projects", title: "All projects", href: "/projects", scene: "skye", group: "Projects", meta: String(projects.length), q: `all projects work ${scenes.skye.place}`.toLowerCase() },
   ...projects.map((p) => ({
     id: p.id,
     title: p.data.title,
