@@ -23,11 +23,11 @@ export function pointerUnit(clientX: number, clientY: number, w: number, h: numb
   };
 }
 
-/** Position within a rect as percent strings, e.g. "37%". */
-export function glarePercent(clientX: number, clientY: number, rect: { left: number; top: number; width: number; height: number }): { gx: string; gy: string } {
-  const px = rect.width > 0 ? Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100)) : 50;
-  const py = rect.height > 0 ? Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100)) : 50;
-  return { gx: `${Math.round(px)}%`, gy: `${Math.round(py)}%` };
+/** Position within a rect as pixel strings clamped to its box, e.g. "37px". */
+export function glareOffset(clientX: number, clientY: number, rect: { left: number; top: number; width: number; height: number }): { gx: string; gy: string } {
+  const px = Math.min(Math.max(0, rect.width), Math.max(0, clientX - rect.left));
+  const py = Math.min(Math.max(0, rect.height), Math.max(0, clientY - rect.top));
+  return { gx: `${Math.round(px)}px`, gy: `${Math.round(py)}px` };
 }
 
 /** Split plain text into word tokens, keeping whitespace as its own tokens. */
@@ -243,7 +243,10 @@ function flushGlare(): void {
   if (!glarePending || document.hidden) return;
   const { el, x, y } = glarePending;
   glarePending = null;
-  const { gx, gy } = glarePercent(x, y, el.getBoundingClientRect());
+  const { gx, gy } = glareOffset(x, y, el.getBoundingClientRect());
+  // The first position on entry is instant. Later ones ease (CSS), so the
+  // glare trails the pointer slightly and catches up when it stops.
+  if (el.classList.contains("is-hover")) el.classList.add("is-tracking");
   el.style.setProperty("--gx", gx);
   el.style.setProperty("--gy", gy);
   el.classList.add("is-hover");
@@ -440,7 +443,7 @@ export function initMotion(): void {
     "pointerout",
     (e) => {
       const el = (e.target as HTMLElement).closest<HTMLElement>("[data-glare], .card");
-      if (el && !el.contains(e.relatedTarget as Node)) el.classList.remove("is-hover");
+      if (el && !el.contains(e.relatedTarget as Node)) el.classList.remove("is-hover", "is-tracking");
       const win = $(".window");
       if (win && e.target === win && !win.contains(e.relatedTarget as Node)) {
         sheenLit = false;

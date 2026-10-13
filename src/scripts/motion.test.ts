@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { lerp, clampUnit, pointerUnit, glarePercent, wordTokens } from "./motion.ts";
+import { lerp, clampUnit, pointerUnit, glareOffset, wordTokens } from "./motion.ts";
 
 test("lerp moves a fraction toward the target", () => {
   assert.equal(lerp(0, 100, 0.18), 18);
@@ -21,11 +21,13 @@ test("pointerUnit maps the viewport center to 0 and corners to +/-1", () => {
   assert.deepEqual(pointerUnit(10, 10, 0, 0), { x: 0, y: 0 });
 });
 
-test("glarePercent returns clamped percent strings", () => {
+test("glareOffset returns pixel strings clamped to the rect", () => {
   const rect = { left: 100, top: 50, width: 200, height: 100 };
-  assert.deepEqual(glarePercent(100, 50, rect), { gx: "0%", gy: "0%" });
-  assert.deepEqual(glarePercent(200, 100, rect), { gx: "50%", gy: "50%" });
-  assert.deepEqual(glarePercent(400, 300, rect), { gx: "100%", gy: "100%" });
+  assert.deepEqual(glareOffset(100, 50, rect), { gx: "0px", gy: "0px" });
+  assert.deepEqual(glareOffset(237.4, 112.6, rect), { gx: "137px", gy: "63px" });
+  assert.deepEqual(glareOffset(400, 300, rect), { gx: "200px", gy: "100px" });
+  assert.deepEqual(glareOffset(0, 0, rect), { gx: "0px", gy: "0px" });
+  assert.deepEqual(glareOffset(10, 10, { left: 0, top: 0, width: 0, height: 0 }), { gx: "0px", gy: "0px" });
 });
 
 test("wordTokens keeps whitespace separate from words", () => {
