@@ -18,7 +18,8 @@ You need Node 22 and pnpm 11.
 ```sh
 pnpm install
 pnpm dev        # local dev server
-pnpm check      # astro check (types)
+pnpm typecheck  # tsc-rs (Rust port of TypeScript 7) on the .ts files, ~0.25 s
+pnpm check      # typecheck, then astro check for the .astro files
 pnpm test       # node --test src/scripts/
 pnpm build      # static build to dist/
 pnpm preview    # serve dist/ locally
