@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import { Image } from "astro:assets";
 import { getCollection, render } from "astro:content";
+import { scenes, photoSrc } from "../../data/scenes.ts";
 import type { SceneId } from "../../data/scenes.ts";
 
 export async function getStaticPaths() {
@@ -16,6 +17,7 @@ export async function getStaticPaths() {
 const { project, next } = Astro.props;
 const d = project.data;
 const slug = project.id;
+const scene = scenes[d.scene as SceneId];
 const { Content } = await render(project);
 
 const kindLabels: Record<string, string> = {
@@ -28,17 +30,17 @@ const kindLabels: Record<string, string> = {
 const hasLinks = Boolean(d.links.repo || d.links.live || d.links.download);
 ---
 <Base title={d.title} description={d.tagline} scenes={[d.scene as SceneId]} route="site" current="work">
-  <div class="page" data-scene={d.scene} data-stop="work">
-    <header class:list={["postcard", "glass", "page__head", !d.shot && "postcard--text"]} style={`view-transition-name: project-${slug}`} aria-labelledby={`p-${slug}`}>
-      {d.shot && (
-        <figure class="postcard__media">
-          <Image class="shot" src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 1024px) 34rem, 92vw" />
-        </figure>
-      )}
-      <div class="postcard__body">
+  <div class="page" data-scene={d.scene} data-stop="work" data-stop-index="0" style="view-timeline-name: --stop-0">
+    <div class="stop__word" aria-hidden="true">{scene.word}</div>
+    <header class="voyage voyage--page" style={`view-transition-name: project-${slug}`} aria-labelledby={`p-${slug}`}>
+      <figure class="voyage__window" data-tilt>
+        {d.shot ? <Image class="shot" src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 1024px) 38rem, 92vw" /> : <img class="shot shot--scene" src={photoSrc(scene, 1200)} alt="" loading="lazy" decoding="async" style={`--focal: ${scene.focal}`} />}
+        <span class="voyage__glare" aria-hidden="true"></span>
+      </figure>
+      <div class="voyage__card glass" data-tilt>
         <p class="eyebrow">{kindLabels[d.kind]} · {d.year}{d.status && <span class="eyebrow__status">{d.status}</span>}</p>
-        <h1 class="postcard__title" id={`p-${slug}`}>{d.title}</h1>
-        <p class="postcard__tagline">{d.tagline}</p>
+        <h1 class="voyage__title" id={`p-${slug}`}>{d.title}</h1>
+        <p class="voyage__tagline">{d.tagline}</p>
         <ul class="chips" aria-label="Built with">{d.stack.map((s) => <li class="chip">{s}</li>)}</ul>
         {hasLinks && (
           <div class="actions actions--small">

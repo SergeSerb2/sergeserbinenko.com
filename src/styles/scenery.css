@@ -1,31 +1,38 @@
-/* ---------- Backdrop: the place you are in ---------- */
+/* ---------- Backdrop: one scene per stop, scrubbed by scroll ---------- */
 
 .scenery {
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  contain: strict;
-  background: var(--wash);
-  transition: --wash 1.4s var(--ease-io);
+  background: #0d1216;
   view-transition-name: scenery;
 }
 
-/* Soft light from the top-left, shade at the bottom-right: still pretty with photos off. */
-.scenery__wash {
+/*
+ * Each scene is taller than the screen so it can drift (parallax) without showing
+ * an edge. Its wash is a soft field of the place's color: what you see while the
+ * photo loads, and the whole backdrop when scenery is off.
+ */
+.scene {
   position: absolute;
-  inset: 0;
+  inset: -9vh 0;
   background:
     radial-gradient(110% 80% at 15% 0%, color-mix(in oklch, var(--wash) 45%, white) 0%, transparent 62%),
     radial-gradient(90% 90% at 100% 100%, color-mix(in oklch, var(--wash) 55%, black) 0%, transparent 65%),
     var(--wash);
+  opacity: 0;
+  transition:
+    opacity 1.1s var(--ease-io),
+    filter 1.1s var(--ease-io);
 }
 
-/*
- * Crossfade without a dip: the incoming photo sits on top and fades in; the outgoing
- * one waits underneath until the new one is opaque, then quietly drops out.
- */
-.scenery__img {
+/* Fallback (no scroll timelines, or reduced motion): a calm class-driven crossfade. */
+.scene.is-active {
+  opacity: 1;
+}
+
+.scene__img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -33,75 +40,193 @@
   object-fit: cover;
   object-position: var(--focal, 50% 50%);
   opacity: 0;
-  scale: 1.03;
-  transition: opacity 0.4s linear 1.3s;
+  transition: opacity 1s var(--ease-io);
 }
 
-.scenery__img.is-active {
-  z-index: 1;
+.scene__img.is-loaded {
   opacity: 1;
-  transition: opacity 1.3s var(--ease-io);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  /* Paused (not removed) when inactive, so the outgoing photo never jumps mid-fade. */
-  .scenery__img {
-    scale: 1.09;
-    transition:
-      opacity 0.4s linear 1.3s,
-      scale 0s linear 1.7s;
-    animation: drift 60s var(--ease-io) infinite alternate paused;
-  }
-
-  /* Arrive: the camera settles in, then drifts slowly while you read. */
-  .scenery__img.is-active {
-    scale: 1.03;
-    transition:
-      opacity 1.3s var(--ease-io),
-      scale 2.8s var(--ease);
-    animation-play-state: running;
-  }
-}
-
-@keyframes drift {
-  from {
-    translate: 0 0;
-  }
-  to {
-    translate: -1.1% -0.7%;
-  }
-}
-
-html[data-daylight="night"] .scenery__img {
-  filter: brightness(0.92) saturate(1.05);
-}
-
-html[data-scenery="off"] .scenery__img {
+.scene__img[data-variant="night"] {
   display: none;
 }
 
-/* Keeps the place caption legible on bright photos and dims the edges a touch. */
+html[data-daylight="night"] .scene[data-has-night] .scene__img[data-variant="day"] {
+  display: none;
+}
+
+html[data-daylight="night"] .scene__img[data-variant="night"] {
+  display: block;
+}
+
+html[data-daylight="night"] .scene__img {
+  filter: brightness(0.9) saturate(1.05);
+}
+
+html[data-scenery="off"] .scene__img {
+  display: none !important;
+}
+
+/*
+ * The scrubbed transition, tied to the stop's own view timeline (--tl):
+ * the incoming place arrives out of a blur while the camera dollies in,
+ * the outgoing place racks out of focus and pulls back. Scroll backwards and it
+ * plays backwards. In between, the photo drifts slower than the page.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scene {
+      transition: none;
+      animation:
+        scene-in linear both,
+        scene-out linear forwards,
+        scene-drift linear both;
+      animation-timeline: var(--tl), var(--tl), var(--tl);
+      animation-range:
+        entry-crossing 8% entry-crossing 72%,
+        exit-crossing 22% exit-crossing 96%,
+        cover 0% cover 100%;
+    }
+
+    /* Slow breathing on top of the scroll motion: alive even when you stop. */
+    .scene__img {
+      animation: breathe 28s var(--ease-io) infinite alternate;
+    }
+  }
+}
+
+@keyframes scene-in {
+  from {
+    opacity: 0;
+    filter: blur(34px) saturate(1.5) brightness(1.12);
+    scale: 1.26;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0) saturate(1) brightness(1);
+    scale: 1.06;
+  }
+}
+
+@keyframes scene-out {
+  from {
+    opacity: 1;
+    filter: blur(0) saturate(1);
+    scale: 1.06;
+  }
+  85% {
+    opacity: 1;
+    filter: blur(22px) saturate(0.85);
+    scale: 0.98;
+  }
+  to {
+    opacity: 0;
+    filter: blur(26px) saturate(0.8);
+    scale: 0.97;
+  }
+}
+
+@keyframes scene-drift {
+  from {
+    translate: 0 6vh;
+  }
+  to {
+    translate: 0 -6vh;
+  }
+}
+
+@keyframes breathe {
+  from {
+    scale: 1;
+  }
+  to {
+    scale: 1.05;
+  }
+}
+
+/* Phones: lighter blur keeps the transition smooth on smaller GPUs. */
+@media (max-width: 760px) {
+  @keyframes scene-in {
+    from {
+      opacity: 0;
+      filter: blur(16px) saturate(1.4);
+      scale: 1.18;
+    }
+    to {
+      opacity: 1;
+      filter: blur(0) saturate(1);
+      scale: 1.06;
+    }
+  }
+
+  @keyframes scene-out {
+    from {
+      opacity: 1;
+      filter: blur(0);
+      scale: 1.06;
+    }
+    85% {
+      opacity: 1;
+      filter: blur(12px);
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      filter: blur(14px);
+      scale: 1;
+    }
+  }
+}
+
+/* A warm patch of light that wanders across the scene. */
+.scenery__light {
+  position: absolute;
+  inset: -25%;
+  z-index: 50;
+  pointer-events: none;
+  background:
+    radial-gradient(32% 28% at 30% 22%, oklch(97% 0.06 85 / 0.26) 0%, transparent 70%),
+    radial-gradient(26% 26% at 72% 68%, oklch(88% 0.08 45 / 0.14) 0%, transparent 70%);
+  animation: wander 40s var(--ease-io) infinite alternate;
+}
+
+html[data-daylight="night"] .scenery__light {
+  background:
+    radial-gradient(30% 26% at 28% 24%, oklch(80% 0.06 250 / 0.14) 0%, transparent 70%),
+    radial-gradient(24% 24% at 70% 70%, oklch(70% 0.1 300 / 0.1) 0%, transparent 70%);
+}
+
+@keyframes wander {
+  from {
+    translate: -7% -5%;
+    rotate: -4deg;
+  }
+  to {
+    translate: 9% 7%;
+    rotate: 6deg;
+  }
+}
+
+/* Keeps the caption and on-scene titles legible on bright photos. */
 .scenery__scrim {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 51;
   pointer-events: none;
   background:
-    linear-gradient(to top, oklch(14% 0.02 245 / 0.55) 0%, oklch(14% 0.02 245 / 0.16) 24%, transparent 44%),
-    linear-gradient(to bottom, oklch(14% 0.02 245 / 0.2) 0%, transparent 16%);
+    linear-gradient(to top, oklch(14% 0.02 245 / 0.55) 0%, oklch(14% 0.02 245 / 0.16) 26%, transparent 46%),
+    linear-gradient(to bottom, oklch(14% 0.02 245 / 0.22) 0%, transparent 18%),
+    radial-gradient(120% 90% at 50% 45%, transparent 55%, oklch(14% 0.02 245 / 0.28) 100%);
 }
 
 html[data-tone="dark"] .scenery__scrim {
-  background-color: oklch(10% 0.02 245 / 0.22);
-}
-
-html[data-scenery="off"] .scenery__scrim {
-  opacity: 0.5;
+  background-color: oklch(10% 0.02 245 / 0.2);
 }
 
 /* ---------- Glass ---------- */
 
 .glass {
+  position: relative;
   background-color: var(--glass);
   background-image: var(--grain);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(1.8);
@@ -110,6 +235,39 @@ html[data-scenery="off"] .scenery__scrim {
     inset 0 1px 0 0 var(--glass-light),
     inset 0 0 0 1px var(--glass-edge),
     var(--shadow);
+}
+
+/* Rim light: a thin highlight that keeps travelling around the bigger panes. */
+:is(.pass__main, .pass__stub, .now__card, .voyage__card, .card, .page__head, .tile)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1.25px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--sheen),
+    transparent 0deg,
+    oklch(100% 0 0 / 0.9) 36deg,
+    transparent 84deg,
+    transparent 190deg,
+    oklch(100% 0 0 / 0.4) 226deg,
+    transparent 272deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: sheen 10s linear infinite;
+}
+
+@keyframes sheen {
+  to {
+    --sheen: 360deg;
+  }
 }
 
 /* ---------- Top bar ---------- */
@@ -135,10 +293,11 @@ html[data-scenery="off"] .scenery__scrim {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.4rem 1rem 0.4rem 0.4rem;
+  padding: 0.4rem 1.05rem 0.4rem 0.4rem;
   border-radius: 999px;
-  font: 500 0.9375rem/1 var(--font-sans);
-  letter-spacing: -0.01em;
+  font: 700 0.9375rem/1 var(--font);
+  font-stretch: 112.5%;
+  letter-spacing: -0.02em;
   text-decoration: none;
 }
 
@@ -149,6 +308,11 @@ html[data-scenery="off"] .scenery__scrim {
   border-radius: 9px;
   background: url("/favicon.svg") center / cover;
   box-shadow: inset 0 0 0 1px oklch(100% 0 0 / 0.25);
+  transition: rotate 0.6s var(--spring);
+}
+
+.brand:hover .brand__mark {
+  rotate: -8deg;
 }
 
 @media (max-width: 420px) {
@@ -180,13 +344,18 @@ html[data-scenery="off"] .scenery__scrim {
   color: var(--ink-2);
   cursor: pointer;
   transition:
-    background-color 0.2s,
-    color 0.2s;
+    background-color 0.25s,
+    color 0.25s,
+    scale 0.3s var(--spring);
 }
 
 .mode__opt:hover {
   color: var(--ink);
   background: color-mix(in oklch, var(--ink) 7%, transparent);
+}
+
+.mode__opt:active {
+  scale: 0.9;
 }
 
 .mode__opt[aria-checked="true"] {
@@ -261,17 +430,20 @@ html[data-scenery="off"] .scenery__scrim {
   padding: 0.55rem 0.85rem 0.55rem 0.6rem;
   border-radius: 12px;
   color: var(--ink-3);
-  font: 500 0.8125rem/1 var(--font-sans);
-  letter-spacing: 0.005em;
+  font: 600 0.8125rem/1 var(--font);
+  font-stretch: 112.5%;
+  letter-spacing: -0.005em;
   text-decoration: none;
   transition:
     color 0.3s,
-    background-color 0.3s;
+    background-color 0.3s,
+    translate 0.4s var(--spring);
 }
 
 .route__stop:hover {
   color: var(--ink);
   background: color-mix(in oklch, var(--ink) 6%, transparent);
+  translate: 3px 0;
 }
 
 .route__dot {
@@ -284,7 +456,7 @@ html[data-scenery="off"] .scenery__scrim {
   transition:
     background-color 0.4s,
     box-shadow 0.4s,
-    scale 0.4s var(--ease);
+    scale 0.5s var(--spring);
 }
 
 .route__stop[aria-current] {
@@ -296,7 +468,7 @@ html[data-scenery="off"] .scenery__scrim {
   box-shadow:
     inset 0 0 0 1.5px color-mix(in oklch, var(--accent) 70%, var(--ink)),
     0 0 0 4px color-mix(in oklch, var(--accent) 28%, transparent);
-  scale: 1.2;
+  scale: 1.3;
 }
 
 /* Phones: the route becomes a pill at the bottom, labels only. */
@@ -331,6 +503,10 @@ html[data-scenery="off"] .scenery__scrim {
     white-space: nowrap;
   }
 
+  .route__stop:hover {
+    translate: none;
+  }
+
   .route__stop[aria-current] {
     color: var(--on-solid);
     background: var(--solid);
@@ -345,8 +521,8 @@ html[data-scenery="off"] .scenery__scrim {
   right: var(--gutter);
   bottom: calc(env(safe-area-inset-bottom) + var(--gutter));
   display: grid;
-  max-width: min(26rem, 70vw);
-  color: oklch(98% 0.005 240);
+  max-width: min(30rem, 72vw);
+  color: var(--on-scene);
   text-align: right;
   text-shadow: 0 1px 14px oklch(10% 0.02 245 / 0.5);
   pointer-events: none;
@@ -356,48 +532,49 @@ html[data-scenery="off"] .scenery__scrim {
   grid-area: 1 / 1;
   align-self: end;
   opacity: 0;
-  transition: opacity 0.5s var(--ease-io);
+  transition: opacity 0.8s var(--ease-io);
 }
 
 .place.is-active {
   opacity: 1;
   pointer-events: auto;
-  transition: opacity 0.9s var(--ease-io) 0.45s;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .place {
-    translate: 0 6px;
-    transition:
-      opacity 0.5s var(--ease-io),
-      translate 0.5s var(--ease-io);
-  }
+.place__variant[data-variant="night"] {
+  display: none;
+}
 
-  .place.is-active {
-    translate: 0 0;
-    transition:
-      opacity 0.9s var(--ease-io) 0.45s,
-      translate 1.1s var(--ease) 0.45s;
-  }
+html[data-daylight="night"] .place:has(.place__variant[data-variant="night"]) .place__variant[data-variant="day"] {
+  display: none;
+}
+
+html[data-daylight="night"] .place__variant[data-variant="night"] {
+  display: block;
 }
 
 .place__coords {
-  margin-bottom: 0.6rem;
-  font: 500 0.6875rem/1 var(--font-mono);
-  letter-spacing: 0.14em;
+  margin-bottom: 0.55rem;
+  font: 650 0.6875rem/1 var(--font);
+  font-stretch: 75%;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  opacity: 0.82;
+  opacity: 0.85;
 }
 
 .place__name {
-  font: italic 400 clamp(1.5rem, 1.1rem + 1.3vw, 2.5rem) / 1 var(--font-display);
-  font-variation-settings: "opsz" 72;
-  letter-spacing: -0.015em;
+  font: 300 clamp(1.75rem, 1.2rem + 1.6vw, 2.875rem) / 1 var(--font);
+  font-stretch: 112.5%;
+  letter-spacing: -0.03em;
+}
+
+.ch {
+  display: inline-block;
+  white-space: pre;
 }
 
 .place__credit {
-  margin-top: 0.55rem;
-  font: 400 0.75rem/1.3 var(--font-sans);
+  margin-top: 0.6rem;
+  font: 450 0.75rem/1.3 var(--font);
   opacity: 0.85;
 }
 
@@ -411,6 +588,70 @@ html[data-scenery="off"] .scenery__scrim {
   text-decoration-color: currentColor;
 }
 
+/*
+ * Scrubbed captions: letters of the new place arrive one by one out of a blur as its
+ * stop scrolls in, and lift away as it leaves. Same timeline as the scene.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .place {
+      opacity: 1;
+      transition: none;
+    }
+
+    .place .ch {
+      animation:
+        letter-in linear both,
+        letter-out linear forwards;
+      animation-timeline: var(--tl), var(--tl);
+      animation-range:
+        entry-crossing calc(26% + var(--i) * 1.1%) entry-crossing calc(42% + var(--i) * 1.1%),
+        exit-crossing calc(14% + var(--i) * 0.8%) exit-crossing calc(28% + var(--i) * 0.8%);
+    }
+
+    .place__coords,
+    .place__credit {
+      animation:
+        line-in linear both,
+        line-out linear forwards;
+      animation-timeline: var(--tl), var(--tl);
+      animation-range:
+        entry-crossing 30% entry-crossing 50%,
+        exit-crossing 10% exit-crossing 24%;
+    }
+  }
+}
+
+@keyframes letter-in {
+  from {
+    opacity: 0;
+    translate: 0 0.55em;
+    filter: blur(8px);
+  }
+}
+
+@keyframes letter-out {
+  to {
+    opacity: 0;
+    translate: 0 -0.45em;
+    filter: blur(6px);
+  }
+}
+
+@keyframes line-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+@keyframes line-out {
+  to {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+
 @media (max-width: 959px) {
   .places {
     right: 1rem;
@@ -418,7 +659,7 @@ html[data-scenery="off"] .scenery__scrim {
   }
 
   .place__name {
-    font-size: 1.375rem;
+    font-size: 1.5rem;
   }
 
   .place__coords {

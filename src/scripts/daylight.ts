@@ -23,3 +23,9 @@ export function sceneFor(dayId: string, daylight: Daylight, nightId?: string): s
   if (daylight === "night" && nightId) return nightId;
   return dayId;
 }
+
+export type Variant = "day" | "night";
+
+export function variantFor(daylight: Daylight, hasNight: boolean): Variant {
+  return daylight === "night" && hasNight ? "night" : "day";
+}

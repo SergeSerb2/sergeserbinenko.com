@@ -4,7 +4,7 @@ import Scenery from "../components/Scenery.astro";
 import Places from "../components/Places.astro";
 import Topbar from "../components/Topbar.astro";
 import Route from "../components/Route.astro";
-import displayFont from "@fontsource-variable/newsreader/files/newsreader-latin-standard-normal.woff2?url";
+import displayFont from "@fontsource-variable/mona-sans/files/mona-sans-latin-standard-normal.woff2?url";
 import { site } from "../data/site.ts";
 import { scenes, nightScenes, photoSrcset } from "../data/scenes.ts";
 import type { SceneId } from "../data/scenes.ts";
@@ -27,6 +27,7 @@ const firstId = pageScenes[0];
 const daySrcset = photoSrcset(scenes[firstId]);
 const nightId = nightScenes[firstId];
 const nightSrcset = nightId ? photoSrcset(scenes[nightId]) : daySrcset;
+const timelineScope = pageScenes.map((_, i) => `--stop-${i}`).join(", ");
 ---
 <!doctype html>
 <html lang="en" data-scenery="auto" data-daylight="day" data-tone="light">
@@ -75,7 +76,7 @@ const nightSrcset = nightId ? photoSrcset(scenes[nightId]) : daySrcset;
     } catch (e) {}
   </script>
 </head>
-<body>
+<body style={`timeline-scope: ${timelineScope}`}>
   <a class="skip" href="#main">Skip to content</a>
   <Scenery scenes={pageScenes} />
   <Topbar />
@@ -84,28 +85,25 @@ const nightSrcset = nightId ? photoSrcset(scenes[nightId]) : daySrcset;
   <Places scenes={pageScenes} />
   <script is:inline>
     try {
-      var activeImg = document.querySelector(".scenery__img.is-active");
-      var placeId = activeImg && activeImg.dataset.scene;
-      if (!placeId) {
-        var firstImg = document.querySelector(".scenery__img");
-        if (firstImg) {
-          placeId = firstImg.dataset.scene;
-          if (document.documentElement.dataset.daylight === "night" && firstImg.dataset.night) placeId = firstImg.dataset.night;
-        }
-      }
-      if (placeId) {
-        document.querySelectorAll(".place[data-scene]").forEach(function (place) {
-          var on = place.dataset.scene === placeId;
-          place.classList.toggle("is-active", on);
-          if (on) place.removeAttribute("inert");
-          else place.setAttribute("inert", "");
+      var night = document.documentElement.dataset.daylight === "night";
+      document.querySelectorAll(".place[data-stop-index]").forEach(function (place) {
+        var on = place.dataset.stopIndex === "0";
+        place.classList.toggle("is-active", on);
+        if (on) place.removeAttribute("inert");
+        else place.setAttribute("inert", "");
+        var hasNight = !!place.querySelector('.place__variant[data-variant="night"]');
+        var want = night && hasNight ? "night" : "day";
+        place.querySelectorAll(".place__variant[data-variant]").forEach(function (v) {
+          if (on && v.dataset.variant === want) v.removeAttribute("inert");
+          else v.setAttribute("inert", "");
         });
-      }
+      });
     } catch (e) {}
   </script>
   <script>
     import "../scripts/scenery.ts";
     import "../scripts/ui.ts";
+    import "../scripts/tilt.ts";
   </script>
 </body>
 </html>

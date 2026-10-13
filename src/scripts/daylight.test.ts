@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseMode, resolveDaylight, resolveTone, sceneFor } from "./daylight.ts";
+import { parseMode, resolveDaylight, resolveTone, sceneFor, variantFor } from "./daylight.ts";
 
 test("parseMode accepts known modes and defaults to auto", () => {
   assert.equal(parseMode("auto"), "auto");
@@ -52,6 +52,13 @@ test("resolveTone matrix", () => {
   assert.equal(resolveTone("off", "night", true), "dark");
   assert.equal(resolveTone("off", "day", false), "light");
   assert.equal(resolveTone("off", "day", true), "dark");
+});
+
+test("variantFor picks night only at night when a night variant exists", () => {
+  assert.equal(variantFor("night", true), "night");
+  assert.equal(variantFor("night", false), "day");
+  assert.equal(variantFor("day", true), "day");
+  assert.equal(variantFor("day", false), "day");
 });
 
 test("sceneFor picks night variant only at night when present", () => {

@@ -2,7 +2,8 @@
 import Base from "../layouts/Base.astro";
 ---
 <Base title="Page not found" scenes={["faroe"]} route="site">
-  <div class="page page--center" data-scene="faroe" data-stop="home">
+  <div class="page page--center" data-scene="faroe" data-stop="home" data-stop-index="0" style="view-timeline-name: --stop-0">
+    <div class="stop__word" aria-hidden="true">Faroe</div>
     <div class="card glass">
       <p class="eyebrow">404</p>
       <h1 class="title" id="not-found-title">You’ve wandered off the map.</h1>

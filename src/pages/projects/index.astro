@@ -19,7 +19,8 @@ const groups = kindOrder
   .filter((g) => g.items.length > 0);
 ---
 <Base title="All projects" scenes={["lofoten"]} route="site" current="work">
-  <div class="page" data-scene="lofoten" data-stop="work">
+  <div class="page" data-scene="lofoten" data-stop="work" data-stop-index="0" style="view-timeline-name: --stop-0">
+    <div class="stop__word" aria-hidden="true">Lofoten</div>
     <header class="card glass page__head" aria-labelledby="projects-title">
       <p class="eyebrow">Work</p>
       <h1 class="title" id="projects-title">All projects</h1>

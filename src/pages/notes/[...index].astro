@@ -15,7 +15,8 @@ const notes = all
 const dateFmt = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "short", day: "numeric" });
 ---
 <Base title="Field notes" scenes={["kyoto"]} route="site" current="notes">
-  <div class="page" data-scene="kyoto" data-stop="notes">
+  <div class="page" data-scene="kyoto" data-stop="notes" data-stop-index="0" style="view-timeline-name: --stop-0">
+    <div class="stop__word" aria-hidden="true">Kyoto</div>
     <header class="card glass page__head" aria-labelledby="notes-title">
       <p class="eyebrow">Notes</p>
       <h1 class="title" id="notes-title">Field notes</h1>
