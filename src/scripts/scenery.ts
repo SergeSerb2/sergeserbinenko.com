@@ -152,6 +152,15 @@ function initModeSwitch(): void {
 applyDatasets();
 initModeSwitch();
 
+// Auto follows the clock, so an open tab must cross 06:00 and 19:00 on its own.
+setInterval(() => {
+  const next = resolveDaylight(mode, new Date().getHours());
+  if (next === daylight) return;
+  daylight = next;
+  applyDatasets();
+  if (current) void activate(current);
+}, 60_000);
+
 try {
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyDatasets());
 } catch {
