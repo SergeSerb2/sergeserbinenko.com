@@ -306,6 +306,7 @@ function streamChat(args: StreamChatArgs): Response {
             if (replyCapped) return;
             sawStreamEvent = true;
             const applied = accumulator.apply(payload);
+            if (accumulator.failed) throw new Error("upstream_stream_error");
             if (applied.textDelta === "") continue;
             const cappedResult = truncateReplyDelta(
               assistantText.length,
@@ -375,6 +376,8 @@ function streamChat(args: StreamChatArgs): Response {
       } catch {
         if (abortKind !== "") {
           reason = abortKind;
+        } else if (accumulator.failed) {
+          reason = "upstream_stream_error";
         } else if (upstreamStatus === 429) {
           reason = "upstream_rate_limit";
         } else if (upstreamStatus !== null) {
@@ -385,6 +388,9 @@ function streamChat(args: StreamChatArgs): Response {
         // If generation may have run, settle at the reservation so the
         // daily cap stays honest. Clean pre-stream errors settle at zero.
         tokensCharged = sawStreamEvent ? args.reservationTokensValue : 0;
+        // A failed turn is not remembered: partial text never enters history.
+        assistantText = "";
+        historyNote = "";
         try {
           controller.enqueue(
             encodeSseBytes("error", {

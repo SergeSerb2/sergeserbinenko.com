@@ -106,10 +106,19 @@ export class ChatStreamAccumulator {
   toolCalls = new Map<number, ToolCallState>();
   finishReason: string | null = null;
   usage: ChatUsage | null = null;
+  /** True after a top-level `{"error": ...}` event; the turn has failed. */
+  failed = false;
 
   apply(chunk: unknown): AppliedDelta {
     const applied: AppliedDelta = { textDelta: "", refusalDelta: "" };
     if (!isRecord(chunk)) return applied;
+    // CLIProxyAPI can report a failure after a 200 as a top-level error event,
+    // even after partial output. Nothing after it counts.
+    if (this.failed) return applied;
+    if (chunk.error !== undefined && chunk.error !== null) {
+      this.failed = true;
+      return applied;
+    }
 
     if (isRecord(chunk.usage)) {
       const details = isRecord(chunk.usage.prompt_tokens_details)
