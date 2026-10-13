@@ -20,7 +20,7 @@ const first = scenes[pageScenes[0]];
         data-scene={id}
         data-accent={scene.accent}
         data-has-night={night ? true : undefined}
-        style={`--tl: --stop-${i}; --wash: ${scene.color}`}
+        style={`--tl: --stop-${i}; --wash-day: ${scene.color}${night ? `; --wash-night: ${night.color}` : ""}`}
       >
         <img
           class="scene__img"
@@ -42,7 +42,7 @@ const first = scenes[pageScenes[0]];
             sizes="100vw"
             data-srcset={photoSrcset(night)}
             data-src={photoSrc(night, 2400)}
-            style={`--focal: ${night.focal}; --wash-night: ${night.color}`}
+            style={`--focal: ${night.focal}`}
           />
         )}
       </div>
