@@ -1,89 +1,74 @@
 # Design: "Journey"
 
 The site is a trip through real places. A full-bleed photo sits behind everything.
-Each section of the home page is a stop with its own place. When a stop reaches the
-middle of the screen, the photo crossfades to that place, the caption in the bottom
-right names it (with its coordinates and the local time there), and the accent color
-shifts to match. Content floats over the photo in frosted glass.
+Each section of the home page is a stop with its own place. Scrolling moves the camera:
+the next place arrives out of a blur while the last one racks out of focus, the caption
+spells out the new place letter by letter, and the accent color shifts to match. Content
+floats over the photo in frosted glass, in shapes borrowed from travel: a boarding pass,
+airplane windows, a folded map, an airmail postcard.
 
-It carries the "World Scenery" language from T3 Pretty and Spotiurge: real
-photographs, calm glass, a place caption, and the photographer always credited.
+It carries the "World Scenery" language from T3 Pretty and Spotiurge: real photographs,
+calm glass, a place caption, and the photographer always credited.
 
 ## Rules
 
-- **Photo first.** Content never covers the whole photo on wide screens. Cards sit on
-  the left (projects alternate sides), the photo breathes on the right.
-- **Everything readable lives in glass.** Never put body text straight on a photo.
-  The only text on the photo is the place caption, over a bottom scrim.
-- **One idea per stop.** A stop is one card: hero, now, one project, résumé, contact.
-- **Real places, real credit.** Photos are hand-picked Unsplash photos, hotlinked from
-  `images.unsplash.com` with the photographer and Unsplash linked (with UTM params).
-  Never AI-generated scenery.
-- **Calm motion.** Crossfades are slow (1.3 s), the photo settles and then drifts very
-  slowly. Glass cards rise in once as they enter. Reduced motion keeps the fades and
-  drops all movement.
-
-## Places
-
-All places live in `src/data/scenes.ts`. Each has a photo, coordinates, time zone,
-average color (the wash while loading and the whole backdrop when scenery is off), an
-accent color picked by eye from the photo, and a focal point.
-
-| Stop | Day | Night (19:00–06:00 visitor time) |
-| --- | --- | --- |
-| Home | Tofino kayak | Jasper Milky Way |
-| Now | Moraine Lake | Jasper night sky |
-| Work intro | Lofoten | Hong Kong at night |
-| Projects | Each project picks its own place in its frontmatter (`scene`) | — |
-| Résumé | Isle of Skye (a trail) | — |
-| Notes | Kyoto | — |
-| Contact | Tofino at dusk (end of the day, send a postcard) | Jasper night sky |
-| 404 | Faroe Islands ("off the map") | — |
-
-To add a place, pick a photo from Unsplash, add it to `scenes`, choose an `accent`
-that is a real color in the photo, and set `focal` so the subject is not hidden behind
-the cards. Night variants go in `nightScenes`.
-
-## Scenery modes
-
-Top-right switch: **Auto** (visitor's local time decides day or night), **Day**,
-**Night**, **Off** (no photos, just a soft wash of the place's color). Stored in
-`localStorage.scenery`. An inline script in `<head>` applies it before first paint.
-
-Tone (light or dark glass) follows the visitor's color scheme, except night photos
-always use dark glass.
+- **Photo first.** Every stop leaves the photo room to breathe. Big titles sit straight on
+  the scene; anything you read for more than a line sits on glass.
+- **One idea per stop.** Hero is a boarding pass, Now is a statement with floating facts,
+  Work is a giant title, each project is a view through an airplane window, the résumé
+  is a trail on a map, contact is an airmail postcard.
+- **Motion is scrubbed, not timed.** Scene changes, captions, parallax, and reveals are
+  tied to scroll position (CSS scroll-driven animations), so they follow your hand and
+  play backwards when you scroll back. Browsers without scroll timelines get calm
+  class-driven fades.
+- **Always a little alive.** Photos breathe, light wanders across the scene, glass rims
+  catch a travelling highlight, badges turn, the departure board rolls, facts bob.
+  All of it stops for reduced motion.
+- **Real places, real credit.** Hand-picked Unsplash photos, hotlinked from
+  `images.unsplash.com`, photographer and Unsplash linked (with UTM params) wherever a
+  photo appears. Never AI-generated scenery.
 
 ## Type
 
-- **Newsreader** (display): names, titles, place names, the "handwritten" postcard.
-  Optical size 72 at display sizes. Italic for places and organisations.
-- **Geist** (UI and body).
-- **Geist Mono** (eyebrows, coordinates, dates, chips). Uppercase with wide tracking.
+One family: **Mona Sans** (variable weight 200–900 and width 75–125).
 
-## Tokens
+- Names and titles: heavy and wide (`font-stretch: 125%`, weight 820–900, tight tracking).
+- Labels, coordinates, dates, chips: condensed capitals (`font-stretch: 75%`, weight
+  650, tracking 0.15em). This replaces a monospace.
+- Body: plain (weight 420).
+- Secondary names (orgs, roles, the postcard note): light and slightly wide.
+- Width is motion: the hero name squeezes from wide to condensed as you leave it.
 
-Defined at the top of `src/styles/global.css`: `--ink`, `--ink-2`, `--ink-3`,
-`--line`, `--glass`, `--glass-hi`, `--solid`, `--accent` (registered, animates
-between places), `--wash` (registered), radii `--r-xl/l/m`, `--ease`, `--ease-io`.
-Dark tone overrides live under `html[data-tone="dark"]`.
+## Places
+
+All places live in `src/data/scenes.ts`: photo, place name, short `word` (set huge behind
+the stop), coordinates, time zone, average color, accent, and focal point. Night
+variants live in `nightScenes` and replace the day photo between 19:00 and 06:00 visitor
+time.
+
+## Scenery engine
+
+- One `.scene` per stop, in the fixed `.scenery` layer. Each stop has a view timeline
+  (`--stop-N`); `<body>` lists them in `timeline-scope` so the backdrop can follow them.
+- `scene-in`, `scene-out`, and `scene-drift` (in `scenery.css`) are the whole transition:
+  blur + dolly in, blur + pull back, and parallax drift.
+- JS only loads photos near the viewport, tracks the active stop (accent, route, caption
+  focusability), and resolves day or night.
+
+## Modes
+
+Top-right switch: **Auto**, **Day**, **Night**, **Off** (no photos, the place's color
+wash still transitions). Stored in `localStorage.scenery`, applied before first paint.
+Glass follows the visitor's color scheme, except night photos always use dark glass.
 
 ## Files
 
-- `src/styles/global.css`: fonts, tokens, base, view transitions.
-- `src/styles/scenery.css`: backdrop, glass, top bar, route rail, place caption.
-- `src/styles/components.css`: stops, type, buttons, chips, hero, project postcard,
-  résumé trail, contact postcard (stamp and postmark), motion.
-- `src/styles/pages.css`: inner pages, project tiles, résumé page, notes, print.
+- `src/styles/global.css`: font, tokens, base, view transitions.
+- `src/styles/scenery.css`: backdrop scenes, light, glass and rim light, top bar, route
+  rail, place caption.
+- `src/styles/components.css`: stops and giant words, type, buttons, boarding pass,
+  ticker, Now facts, voyage (window, card, badge), map card and trail, airmail postcard,
+  motion.
+- `src/styles/pages.css`: inner pages, project tiles, résumé, notes, print.
 
 Components use these class names and contain no styles of their own.
-
-## Details worth keeping
-
-- The route rail on the home page fills with the accent color as you scroll
-  (scroll-driven animation; static where unsupported).
-- The résumé trail is a dashed path between waypoints, like a hiking map.
-- The contact card is a postcard: message on the left, address lines on the right, a
-  perforated stamp of the current place, and a postmark with today's date.
-- `/resume` prints as a clean document ("Save as PDF").
-- Cross-document view transitions keep the backdrop in place between pages, and a
-  project card morphs into its page header.

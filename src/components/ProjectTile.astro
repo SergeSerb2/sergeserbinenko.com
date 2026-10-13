@@ -18,7 +18,7 @@ const kindLabels: Record<string, string> = {
   experiment: "Experiment",
 };
 ---
-<a class="tile glass" href={`/projects/${slug}`} style={`view-transition-name: project-${slug}`}>
+<a class="tile glass" href={`/projects/${slug}`} style={`view-transition-name: project-${slug}`} data-tilt>
   <span class="tile__cover"><img src={photoSrc(scene, 800)} alt="" loading="lazy" decoding="async" style={`--focal: ${scene.focal}`} /><span class="tile__credit">{scene.place} · Photo by {scene.photographer} on Unsplash</span></span>
   <span class="tile__body">
     <span class="eyebrow">{d.year} · {kindLabels[d.kind]}{d.status && <span class="eyebrow__status">{d.status}</span>}</span>
@@ -26,4 +26,5 @@ const kindLabels: Record<string, string> = {
     <span class="tile__tagline">{d.tagline}</span>
     <span class="chips">{d.stack.map((s) => <span class="chip">{s}</span>)}</span>
   </span>
+  <span class="tile__glare" aria-hidden="true"></span>
 </a>

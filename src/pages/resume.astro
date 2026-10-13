@@ -15,7 +15,8 @@ const featured = allProjects
 const siteLabel = site.url.replace(/^https?:\/\//, "");
 ---
 <Base title="Résumé" scenes={["skye"]} route="site" current="resume">
-  <div class="page" data-scene="skye" data-stop="resume">
+  <div class="page" data-scene="skye" data-stop="resume" data-stop-index="0" style="view-timeline-name: --stop-0">
+    <div class="stop__word" aria-hidden="true">Skye</div>
     <article class="sheet glass resume" aria-labelledby="resume-name">
       <header class="resume__head">
         <h1 class="title" id="resume-name">{site.name}</h1>

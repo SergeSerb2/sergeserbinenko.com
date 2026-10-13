@@ -10,6 +10,8 @@
  */
 export interface Scene {
   place: string;
+  /** Short name set huge behind a stop and sliding as you scroll. */
+  word: string;
   coords: string;
   /** IANA time zone of the place, for the caption's local time. */
   tz: string;
@@ -25,6 +27,7 @@ export interface Scene {
 export const scenes = {
   "tofino": {
     place: "Tofino, Canada",
+    word: "Tofino",
     coords: "49.15° N, 125.91° W",
     tz: "America/Vancouver",
     photo: "https://images.unsplash.com/photo-1731006989672-a2dabbd87e64",
@@ -37,6 +40,7 @@ export const scenes = {
   },
   "moraine": {
     place: "Moraine Lake, Canada",
+    word: "Moraine",
     coords: "51.32° N, 116.18° W",
     tz: "America/Edmonton",
     photo: "https://images.unsplash.com/photo-1506104489822-562ca25152fe",
@@ -49,6 +53,7 @@ export const scenes = {
   },
   "lofoten": {
     place: "Lofoten, Norway",
+    word: "Lofoten",
     coords: "67.93° N, 13.09° E",
     tz: "Europe/Oslo",
     photo: "https://images.unsplash.com/photo-1663428520845-056989f8a664",
@@ -61,6 +66,7 @@ export const scenes = {
   },
   "los-roques": {
     place: "Los Roques, Venezuela",
+    word: "Los Roques",
     coords: "11.85° N, 66.76° W",
     tz: "America/Caracas",
     photo: "https://images.unsplash.com/photo-1637407412556-9a29c2d6793e",
@@ -73,6 +79,7 @@ export const scenes = {
   },
   "seoul": {
     place: "Seoul, South Korea",
+    word: "Seoul",
     coords: "37.57° N, 126.98° E",
     tz: "Asia/Seoul",
     photo: "https://images.unsplash.com/photo-1645451365229-676df30167f0",
@@ -85,6 +92,7 @@ export const scenes = {
   },
   "skye": {
     place: "Isle of Skye, Scotland",
+    word: "Skye",
     coords: "57.50° N, 6.16° W",
     tz: "Europe/London",
     photo: "https://images.unsplash.com/photo-1546706872-9c90b8d0c94f",
@@ -97,6 +105,7 @@ export const scenes = {
   },
   "tofino-dusk": {
     place: "Tofino, Canada",
+    word: "Tofino",
     coords: "49.15° N, 125.91° W",
     tz: "America/Vancouver",
     photo: "https://images.unsplash.com/photo-1680125533385-eb2bb7464c48",
@@ -109,6 +118,7 @@ export const scenes = {
   },
   "faroe": {
     place: "Faroe Islands, Denmark",
+    word: "Faroe",
     coords: "62.10° N, 7.43° W",
     tz: "Atlantic/Faroe",
     photo: "https://images.unsplash.com/photo-1563555856467-9c34d536240b",
@@ -121,6 +131,7 @@ export const scenes = {
   },
   "kyoto": {
     place: "Kyoto, Japan",
+    word: "Kyoto",
     coords: "34.99° N, 135.78° E",
     tz: "Asia/Tokyo",
     photo: "https://images.unsplash.com/photo-1578469645742-46cae010e5d4",
@@ -133,6 +144,7 @@ export const scenes = {
   },
   "seceda": {
     place: "Seceda, Italy",
+    word: "Seceda",
     coords: "46.60° N, 11.72° E",
     tz: "Europe/Rome",
     photo: "https://images.unsplash.com/photo-1663806260665-ca5c96bf0110",
@@ -145,6 +157,7 @@ export const scenes = {
   },
   "maligne": {
     place: "Maligne Lake, Canada",
+    word: "Maligne",
     coords: "52.68° N, 117.54° W",
     tz: "America/Edmonton",
     photo: "https://images.unsplash.com/photo-1587381419916-78fc843a36f8",
@@ -157,6 +170,7 @@ export const scenes = {
   },
   "peyto": {
     place: "Peyto Lake, Canada",
+    word: "Peyto",
     coords: "51.72° N, 116.51° W",
     tz: "America/Edmonton",
     photo: "https://images.unsplash.com/photo-1576547756401-f9e122d87431",
@@ -169,6 +183,7 @@ export const scenes = {
   },
   "hong-kong": {
     place: "Hong Kong",
+    word: "Hong Kong",
     coords: "22.28° N, 114.16° E",
     tz: "Asia/Hong_Kong",
     photo: "https://images.unsplash.com/photo-1517449905587-f80695d63356",
@@ -181,6 +196,7 @@ export const scenes = {
   },
   "jasper-sky": {
     place: "Jasper, Canada",
+    word: "Jasper",
     coords: "52.87° N, 118.08° W",
     tz: "America/Edmonton",
     photo: "https://images.unsplash.com/photo-1567544568263-55b6f67b5289",
@@ -193,6 +209,7 @@ export const scenes = {
   },
   "jasper-sky-2": {
     place: "Jasper, Canada",
+    word: "Jasper",
     coords: "52.87° N, 118.08° W",
     tz: "America/Edmonton",
     photo: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca",
@@ -205,6 +222,7 @@ export const scenes = {
   },
   "jasper-sky-3": {
     place: "Jasper, Canada",
+    word: "Jasper",
     coords: "52.87° N, 118.08° W",
     tz: "America/Edmonton",
     photo: "https://images.unsplash.com/photo-1482385916434-814664df9c5b",

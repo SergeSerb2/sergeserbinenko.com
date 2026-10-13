@@ -1,0 +1,51 @@
+---
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+import Badge from "./Badge.astro";
+import { scenes, photoSrc } from "../data/scenes.ts";
+import type { SceneId } from "../data/scenes.ts";
+
+interface Props {
+  project: CollectionEntry<"projects">;
+  index: number;
+  total: number;
+  stopIndex: number;
+}
+const { project, index, total, stopIndex } = Astro.props;
+const d = project.data;
+const slug = project.id;
+const scene = scenes[d.scene as SceneId];
+const kindLabels: Record<string, string> = {
+  product: "Product",
+  "open-source": "Open source",
+  fork: "Fork",
+  work: "Client work",
+  experiment: "Experiment",
+};
+const nn = String(index + 1).padStart(2, "0");
+const tt = String(total).padStart(2, "0");
+---
+<section class="stop stop--project" id={`work-${slug}`} data-scene={d.scene} data-stop="work" data-stop-index={stopIndex} style={`view-timeline-name: --stop-${stopIndex}`} aria-labelledby={`p-${slug}`}>
+  <div class="stop__word" aria-hidden="true">{scene.word}</div>
+  <article class="voyage" aria-labelledby={`p-${slug}`} style={`view-transition-name: project-${slug}`}>
+    <span class="voyage__index" aria-hidden="true">{nn}</span>
+    <figure class="voyage__window" data-tilt>
+      {d.shot ? <Image class="shot" src={d.shot} alt={d.shotAlt ?? ""} widths={[640, 960, 1280]} sizes="(min-width: 1024px) 38rem, 92vw" /> : <img class="shot shot--scene" src={photoSrc(scene, 1200)} alt="" loading="lazy" decoding="async" style={`--focal: ${scene.focal}`} />}
+      <span class="voyage__glare" aria-hidden="true"></span>
+    </figure>
+    <div class="voyage__card glass" data-tilt>
+      <p class="eyebrow">{nn} / {tt} · {kindLabels[d.kind]} · {d.year}</p>
+      {d.status && <span class="sr">Status: {d.status}</span>}
+      <h3 class="voyage__title" id={`p-${slug}`}><a href={`/projects/${slug}`}>{d.title}</a></h3>
+      <p class="voyage__tagline">{d.tagline}</p>
+      <ul class="chips" aria-label="Built with">{d.stack.map((s) => <li class="chip">{s}</li>)}</ul>
+      <div class="actions actions--small">
+        <a class="btn btn--solid btn--small" href={`/projects/${slug}`}>Read the story</a>
+        {d.links.repo && <a class="btn btn--small" href={d.links.repo} rel="noopener">GitHub <span aria-hidden="true">↗</span></a>}
+        {d.links.live && <a class="btn btn--small" href={d.links.live} rel="noopener">Visit <span aria-hidden="true">↗</span></a>}
+        {d.links.download && <a class="btn btn--small" href={d.links.download} rel="noopener">Download <span aria-hidden="true">↗</span></a>}
+      </div>
+    </div>
+    {d.status && <Badge class="voyage__badge" text={d.status} uid={slug} />}
+  </article>
+</section>
