@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildTools, hasOnlyAllowedLinks, validateToolAction } from "./tools.ts";
+import { actionNote, buildTools, hasOnlyAllowedLinks, validateToolAction } from "./tools.ts";
 
 const PATHS = ["/", "/projects", "/projects/t3-pretty", "/resume", "/contact"];
 
@@ -93,4 +93,11 @@ test("hasOnlyAllowedLinks allows site links and plain text only", () => {
   assert.equal(hasOnlyAllowedLinks("go to evil.example.com now"), false);
   assert.equal(hasOnlyAllowedLinks("Reply to me at visitor@gmail.com"), true);
   assert.equal(hasOnlyAllowedLinks("Email hello@sergeserbinenko.com"), true);
+});
+
+test("actionNote describes each action for history", () => {
+  assert.equal(actionNote({ type: "open_page", path: "/projects/spotiurge" }), "I opened /projects/spotiurge for you.");
+  assert.equal(actionNote({ type: "show_scenery" }), "I showed you the scenery behind the window.");
+  assert.equal(actionNote({ type: "draft_email", subject: "Hi" }), 'I drafted an email to Serge titled "Hi" for you to send.');
+  assert.equal(actionNote({ type: "unknown" }), "");
 });

@@ -144,8 +144,10 @@ pnpm exec wrangler secret put ANTHROPIC_API_KEY
 pnpm exec wrangler secret put TURNSTILE_SECRET
 ```
 
-For local development, copy the same names into `.dev.vars` (gitignored)
-plus `DEV=true`, run `pnpm build`, then
+For local development, put `ANTHROPIC_API_KEY`, `DEV=true`, and Cloudflare's
+**test** Turnstile secret `TURNSTILE_SECRET=1x0000000000000000000000000000000AA` into
+`.dev.vars` (gitignored). On localhost the browser uses the matching test site key,
+and a production secret would reject those tokens. Then run `pnpm build`, then
 `pnpm exec wrangler dev --local-upstream localhost:8787` and open
 `http://localhost:8787/`. Without `--local-upstream`, wrangler rewrites a
 same-host `Origin` to the configured route host, and the Origin guard rejects it.
