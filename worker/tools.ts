@@ -1,8 +1,16 @@
-// Tool definitions sent to Claude, plus validation of tool input before
+// Tool definitions sent to the model, plus validation of tool input before
 // the Worker relays an action to the browser. Invalid actions return null
 // and the turn still finishes normally.
 
-import type Anthropic from "@anthropic-ai/sdk";
+export interface ChatTool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    strict: true;
+    parameters: Record<string, unknown>;
+  };
+}
 
 export type AgentAction =
   | { type: "open_page"; path: string }
@@ -18,58 +26,67 @@ const ALLOWED_LINK_HOSTS: ReadonlySet<string> = new Set([
 ]);
 
 /** Build the three client-action tools. Paths come from the knowledge text. */
-export function buildTools(paths: string[]): Anthropic.Tool[] {
+export function buildTools(paths: string[]): ChatTool[] {
   const enumPaths = paths.length > 0 ? [...paths] : ["/"];
   return [
     {
-      name: "open_page",
-      description:
-        "Open a page of this site for the visitor, e.g. when they ask to see a project or the résumé.",
-      strict: true,
-      input_schema: {
-        type: "object",
-        properties: {
-          path: {
-            type: "string",
-            enum: enumPaths,
-            description: "The site path to open. Must be one of the listed paths.",
+      type: "function",
+      function: {
+        name: "open_page",
+        description:
+          "Open a page of this site for the visitor, e.g. when they ask to see a project or the résumé.",
+        strict: true,
+        parameters: {
+          type: "object",
+          properties: {
+            path: {
+              type: "string",
+              enum: enumPaths,
+              description: "The site path to open. Must be one of the listed paths.",
+            },
           },
+          required: ["path"],
+          additionalProperties: false,
         },
-        required: ["path"],
-        additionalProperties: false,
       },
     },
     {
-      name: "show_scenery",
-      description:
-        "Hide the window for a moment so the visitor can see the scenery photo behind it.",
-      strict: true,
-      input_schema: {
-        type: "object",
-        properties: {},
-        required: [],
-        additionalProperties: false,
+      type: "function",
+      function: {
+        name: "show_scenery",
+        description:
+          "Hide the window for a moment so the visitor can see the scenery photo behind it.",
+        strict: true,
+        parameters: {
+          type: "object",
+          properties: {},
+          required: [],
+          additionalProperties: false,
+        },
       },
     },
     {
-      name: "draft_email",
-      description:
-        "Prefill an email to Serge for the visitor to review and send themselves (nothing is sent automatically). Only when the visitor wants to contact Serge.",
-      strict: true,
-      input_schema: {
-        type: "object",
-        properties: {
-          subject: {
-            type: "string",
-            description: "Email subject, at most 80 characters.",
+      type: "function",
+      function: {
+        name: "draft_email",
+        description:
+          "Prefill an email to Serge for the visitor to review and send themselves (nothing is sent automatically). Only when the visitor wants to contact Serge.",
+        strict: true,
+        parameters: {
+          type: "object",
+          properties: {
+            subject: {
+              type: "string",
+              description: "Email subject, at most 80 characters.",
+            },
+            body: {
+              type: "string",
+              description: "Email body, at most 600 characters. Plain text.",
+            },
           },
-          body: {
-            type: "string",
-            description: "Email body, at most 600 characters. Plain text.",
-          },
+          required: ["subject", "body"],
+          additionalProperties: false,
         },
-        required: ["subject", "body"],
-        additionalProperties: false,
       },
     },
   ];
@@ -105,7 +122,6 @@ export function hasOnlyAllowedLinks(text: string): boolean {
   return true;
 }
 
-/** Validate one tool call from the model. Returns null to drop the action. */
 /**
  * A short first-person note about an action, stored in history so a follow-up
  * like "tell me more about that page" still makes sense to the model.
@@ -123,6 +139,7 @@ export function actionNote(action: { type: string; path?: string; subject?: stri
   }
 }
 
+/** Validate one tool call from the model. Returns null to drop the action. */
 export function validateToolAction(
   name: string,
   input: unknown,

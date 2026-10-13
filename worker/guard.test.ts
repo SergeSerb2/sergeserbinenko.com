@@ -7,6 +7,7 @@ import {
   looksLikePaste,
   normalizeMessage,
   parseSitePaths,
+  resolveUpstreamBase,
   PASTE_MESSAGE,
 } from "./guard.ts";
 
@@ -91,6 +92,19 @@ test("isSecFetchSiteOk rejects cross-site values only when present", () => {
   assert.equal(isSecFetchSiteOk("same-origin"), true);
   assert.equal(isSecFetchSiteOk("cross-site"), false);
   assert.equal(isSecFetchSiteOk("same-site"), false);
+});
+
+test("resolveUpstreamBase requires https, allows http in dev, strips trailing slashes", () => {
+  assert.equal(resolveUpstreamBase("https://proxy.example.com/v1", false), "https://proxy.example.com/v1");
+  assert.equal(resolveUpstreamBase("https://proxy.example.com/v1/", false), "https://proxy.example.com/v1");
+  assert.equal(resolveUpstreamBase("https://proxy.example.com/v1///", false), "https://proxy.example.com/v1");
+  assert.equal(resolveUpstreamBase("http://localhost:8317/v1", false), null);
+  assert.equal(resolveUpstreamBase("http://localhost:8317/v1", true), "http://localhost:8317/v1");
+  assert.equal(resolveUpstreamBase("ftp://proxy.example.com/v1", true), null);
+  assert.equal(resolveUpstreamBase("not a url", false), null);
+  assert.equal(resolveUpstreamBase("", false), null);
+  assert.equal(resolveUpstreamBase("   ", false), null);
+  assert.equal(resolveUpstreamBase(undefined, false), null);
 });
 
 test("parseSitePaths reads PAGE lines and deduplicates", () => {

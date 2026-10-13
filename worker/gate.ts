@@ -1,5 +1,5 @@
 // Gate: one global Durable Object that owns sessions, per-IP counters,
-// and the global daily spend meter. All limit decisions use the pure
+// and the global daily token meter. All limit decisions use the pure
 // functions in limits.ts. IP addresses arrive over RPC, are hashed with
 // a per-day salt, and are never stored or logged in plain form.
 
@@ -11,7 +11,7 @@ import {
   checkCreateSession,
   remainingTurns,
   SESSION_TTL_MS,
-  settleSpend,
+  settleTokens,
   utcDay,
   utcDayMinus,
 } from "./limits.ts";
@@ -33,7 +33,7 @@ type SessionRow = {
   expires_at: number;
   user_turns: number;
   busy: number | null;
-  reserved_micro: number;
+  reserved_tokens: number;
   history: string;
 };
 
@@ -44,8 +44,8 @@ type IpDayRow = {
 
 type GlobalDayRow = {
   messages: number;
-  spend_microusd: number;
-  reserved_microusd: number;
+  tokens: number;
+  reserved_tokens: number;
 };
 
 function randomHex(bytes: number): string {
@@ -86,6 +86,24 @@ export class Gate extends DurableObject<Env> implements GateApi {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     const sql = this.ctx.storage.sql;
+    sql.exec(`CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
+    // One-time migration to the token meter. Sessions live 30 minutes and
+    // day counters are disposable, so drop the old tables. ip_days and the
+    // meta salts keep their schema and are not dropped.
+    const versionRows = sql
+      .exec<{ value: string }>("SELECT value FROM meta WHERE key = ?", "schema_version")
+      .toArray();
+    if (versionRows[0]?.value !== "2") {
+      this.ctx.storage.transactionSync(() => {
+        sql.exec("DROP TABLE IF EXISTS sessions");
+        sql.exec("DROP TABLE IF EXISTS global_days");
+        sql.exec(
+          "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+          "schema_version",
+          "2",
+        );
+      });
+    }
     sql.exec(
       `CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
@@ -94,7 +112,7 @@ export class Gate extends DurableObject<Env> implements GateApi {
         expires_at INTEGER NOT NULL,
         user_turns INTEGER NOT NULL DEFAULT 0,
         busy INTEGER,
-        reserved_micro INTEGER NOT NULL DEFAULT 0,
+        reserved_tokens INTEGER NOT NULL DEFAULT 0,
         history TEXT NOT NULL DEFAULT '[]'
       )`,
     );
@@ -111,11 +129,10 @@ export class Gate extends DurableObject<Env> implements GateApi {
       `CREATE TABLE IF NOT EXISTS global_days (
         day TEXT PRIMARY KEY,
         messages INTEGER NOT NULL DEFAULT 0,
-        spend_microusd INTEGER NOT NULL DEFAULT 0,
-        reserved_microusd INTEGER NOT NULL DEFAULT 0
+        tokens INTEGER NOT NULL DEFAULT 0,
+        reserved_tokens INTEGER NOT NULL DEFAULT 0
       )`,
     );
-    sql.exec(`CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
   }
 
   /** Hash an IP with the salt for the given UTC day, creating the salt once. */
@@ -183,11 +200,11 @@ export class Gate extends DurableObject<Env> implements GateApi {
         .toArray();
       const globalRows = sql
         .exec<GlobalDayRow>(
-          "SELECT messages, spend_microusd, reserved_microusd FROM global_days WHERE day = ?",
+          "SELECT messages, tokens, reserved_tokens FROM global_days WHERE day = ?",
           day,
         )
         .toArray();
-      const global = globalRows[0] ?? { messages: 0, spend_microusd: 0, reserved_microusd: 0 };
+      const global = globalRows[0] ?? { messages: 0, tokens: 0, reserved_tokens: 0 };
       const check = checkBeginTurn({
         now: args.now,
         enabled: args.enabled,
@@ -197,11 +214,11 @@ export class Gate extends DurableObject<Env> implements GateApi {
             : { expiresAt: session.expires_at, userTurns: session.user_turns, busySince: session.busy },
         ipMessagesToday: ipRows[0]?.messages ?? 0,
         globalMessagesToday: global.messages,
-        globalSpendMicro: global.spend_microusd,
-        globalReservedMicro: global.reserved_microusd,
-        reservationMicro: args.reservationMicro,
+        globalTokens: global.tokens,
+        globalReservedTokens: global.reserved_tokens,
+        reservationTokens: args.reservationTokens,
         dailyMessageCap: args.dailyMessageCap,
-        dailySpendCapMicro: args.dailySpendCapMicro,
+        dailyTokenCap: args.dailyTokenCap,
       });
       if (!check.ok) return check;
       if (session === undefined) return { ok: false, code: "session_expired" };
@@ -209,10 +226,10 @@ export class Gate extends DurableObject<Env> implements GateApi {
       this.releaseReservation(session);
       const userTurns = session.user_turns + 1;
       sql.exec(
-        "UPDATE sessions SET busy = ?, user_turns = ?, reserved_micro = ? WHERE id = ?",
+        "UPDATE sessions SET busy = ?, user_turns = ?, reserved_tokens = ? WHERE id = ?",
         args.now,
         userTurns,
-        args.reservationMicro,
+        args.reservationTokens,
         args.sessionId,
       );
       sql.exec(
@@ -222,11 +239,11 @@ export class Gate extends DurableObject<Env> implements GateApi {
         day,
       );
       sql.exec(
-        `INSERT INTO global_days (day, messages, spend_microusd, reserved_microusd) VALUES (?, 1, 0, ?)
-         ON CONFLICT (day) DO UPDATE SET messages = messages + 1, reserved_microusd = reserved_microusd + ?`,
+        `INSERT INTO global_days (day, messages, tokens, reserved_tokens) VALUES (?, 1, 0, ?)
+         ON CONFLICT (day) DO UPDATE SET messages = messages + 1, reserved_tokens = reserved_tokens + ?`,
         day,
-        args.reservationMicro,
-        args.reservationMicro,
+        args.reservationTokens,
+        args.reservationTokens,
       );
       return {
         ok: true,
@@ -248,34 +265,34 @@ export class Gate extends DurableObject<Env> implements GateApi {
       if (session === undefined) return { remaining: 0 };
       const remaining = remainingTurns(session.user_turns);
       // Settle once only: a repeated endTurn for the same turn is a no-op.
-      if (session.busy === null && session.reserved_micro === 0) return { remaining };
+      if (session.busy === null && session.reserved_tokens === 0) return { remaining };
       // The reservation was booked on the day the turn began.
       const day = utcDay(session.busy ?? args.now);
       const globalRows = sql
         .exec<GlobalDayRow>(
-          "SELECT messages, spend_microusd, reserved_microusd FROM global_days WHERE day = ?",
+          "SELECT messages, tokens, reserved_tokens FROM global_days WHERE day = ?",
           day,
         )
         .toArray();
-      const global = globalRows[0] ?? { messages: 0, spend_microusd: 0, reserved_microusd: 0 };
-      const settled = settleSpend(
-        global.spend_microusd,
-        global.reserved_microusd,
-        session.reserved_micro,
-        args.actualMicro,
+      const global = globalRows[0] ?? { messages: 0, tokens: 0, reserved_tokens: 0 };
+      const settled = settleTokens(
+        global.tokens,
+        global.reserved_tokens,
+        session.reserved_tokens,
+        args.actualTokens,
       );
       sql.exec(
-        `INSERT INTO global_days (day, messages, spend_microusd, reserved_microusd) VALUES (?, 0, ?, ?)
-         ON CONFLICT (day) DO UPDATE SET spend_microusd = ?, reserved_microusd = ?`,
+        `INSERT INTO global_days (day, messages, tokens, reserved_tokens) VALUES (?, 0, ?, ?)
+         ON CONFLICT (day) DO UPDATE SET tokens = ?, reserved_tokens = ?`,
         day,
-        settled.settledMicro,
-        settled.reservedMicro,
-        settled.settledMicro,
-        settled.reservedMicro,
+        settled.settledTokens,
+        settled.reservedTokens,
+        settled.settledTokens,
+        settled.reservedTokens,
       );
       const history = appendHistory(parseHistory(session.history), args.userText, args.assistantText);
       sql.exec(
-        "UPDATE sessions SET busy = NULL, reserved_micro = 0, history = ? WHERE id = ?",
+        "UPDATE sessions SET busy = NULL, reserved_tokens = 0, history = ? WHERE id = ?",
         JSON.stringify(history),
         args.sessionId,
       );
@@ -285,13 +302,13 @@ export class Gate extends DurableObject<Env> implements GateApi {
 
   /**
    * Give back a reservation that never settled (the Worker died mid-turn), so it
-   * stops counting against the daily spend cap. Charged to the day it was made.
+   * stops counting against the daily token cap. Charged to the day it was made.
    */
-  private releaseReservation(session: Pick<SessionRow, "busy" | "reserved_micro">): void {
-    if (session.reserved_micro <= 0 || session.busy === null) return;
+  private releaseReservation(session: Pick<SessionRow, "busy" | "reserved_tokens">): void {
+    if (session.reserved_tokens <= 0 || session.busy === null) return;
     this.ctx.storage.sql.exec(
-      "UPDATE global_days SET reserved_microusd = MAX(0, reserved_microusd - ?) WHERE day = ?",
-      session.reserved_micro,
+      "UPDATE global_days SET reserved_tokens = MAX(0, reserved_tokens - ?) WHERE day = ?",
+      session.reserved_tokens,
       utcDay(session.busy),
     );
   }
@@ -301,8 +318,8 @@ export class Gate extends DurableObject<Env> implements GateApi {
     const sql = this.ctx.storage.sql;
     this.ctx.storage.transactionSync(() => {
       const expired = sql
-        .exec<Pick<SessionRow, "busy" | "reserved_micro">>(
-          "SELECT busy, reserved_micro FROM sessions WHERE expires_at <= ? AND reserved_micro > 0",
+        .exec<Pick<SessionRow, "busy" | "reserved_tokens">>(
+          "SELECT busy, reserved_tokens FROM sessions WHERE expires_at <= ? AND reserved_tokens > 0",
           now,
         )
         .toArray();

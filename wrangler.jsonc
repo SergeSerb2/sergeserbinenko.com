@@ -23,10 +23,10 @@
     { "name": "RL_SESSION", "namespace_id": "1002", "simple": { "limit": 3, "period": 60 } }
   ],
   "vars": {
-    "MODEL": "claude-haiku-5-5",
+    "MODEL": "gpt-6-luna",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFVT2zlQ6mlsiQO8",
     "DAILY_MESSAGE_CAP": "1500",
-    "DAILY_SPEND_CAP_USD": "1.50",
+    "DAILY_TOKEN_CAP": "4000000",
     "AGENT_ENABLED": "true"
   }
 }

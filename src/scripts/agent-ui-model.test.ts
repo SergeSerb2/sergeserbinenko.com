@@ -71,8 +71,9 @@ test("counterState shows after 220 and flags over 280", () => {
 });
 
 test("modelLabel names known models and passes others through", () => {
+  assert.equal(modelLabel("gpt-6-luna"), "GPT-6 Luna");
+  assert.equal(modelLabel("gpt-5.6-luna"), "GPT-5.6 Luna");
   assert.equal(modelLabel("claude-haiku-5-5"), "Claude Haiku 5.5");
-  assert.equal(modelLabel("claude-sonnet-5-5"), "Claude Sonnet 5.5");
   assert.equal(modelLabel("some-other-model"), "some-other-model");
 });
 
@@ -224,25 +225,29 @@ test("parseStoredSession drops expired, nearly expired, and bad sessions", () =>
 });
 
 test("noteSegments and noteText build the chat note", () => {
-  assert.deepEqual(noteSegments({ model: "claude-haiku-5-5", remaining: 9 }), {
-    lead: "Site agent · Claude Haiku 5.5 · ",
+  assert.deepEqual(noteSegments({ model: "gpt-6-luna", remaining: 9 }), {
+    lead: "Site agent · GPT-6 Luna · ",
     count: "9",
     tail: " messages left in this chat",
   });
   assert.equal(
-    noteText({ model: "claude-haiku-5-5", remaining: 1 }),
-    "Site agent · Claude Haiku 5.5 · 1 message left in this chat",
+    noteText({ model: "gpt-6-luna", remaining: 1 }),
+    "Site agent · GPT-6 Luna · 1 message left in this chat",
   );
-  assert.deepEqual(noteSegments({ model: "claude-sonnet-5-5", remaining: null }), {
-    lead: "Site agent · Claude Sonnet 5.5",
+  assert.equal(
+    noteText({ model: "gpt-6-luna", remaining: 9 }),
+    "Site agent · GPT-6 Luna · 9 messages left in this chat",
+  );
+  assert.deepEqual(noteSegments({ model: "gpt-6-luna", remaining: null }), {
+    lead: "Site agent · GPT-6 Luna",
     count: null,
     tail: "",
   });
-  assert.equal(noteText({ model: "claude-sonnet-5-5", remaining: null }), "Site agent · Claude Sonnet 5.5");
+  assert.equal(noteText({ model: "gpt-6-luna", remaining: null }), "Site agent · GPT-6 Luna");
 });
 
 test("serializeNote and parseNote round-trip and reject bad input", () => {
-  const note = { model: "claude-haiku-5-5", remaining: 0 };
+  const note = { model: "gpt-6-luna", remaining: 0 };
   assert.deepEqual(parseNote(serializeNote(note)), note);
   assert.deepEqual(parseNote(serializeNote({ model: "m", remaining: null })), { model: "m", remaining: null });
   assert.deepEqual(parseNote('{"model":"m"}'), { model: "m", remaining: null });

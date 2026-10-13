@@ -11,7 +11,7 @@ export const MAX_MESSAGES_PER_IP_PER_DAY = 30;
 export const HISTORY_MAX_MESSAGES = 8;
 export const ASSISTANT_STORE_MAX_CHARS = 1200;
 export const DEFAULT_DAILY_MESSAGE_CAP = 1500;
-export const DEFAULT_DAILY_SPEND_CAP_MICRO = 1_500_000; // $1.50
+export const DEFAULT_DAILY_TOKEN_CAP = 4_000_000;
 export const ALARM_INTERVAL_MS = 60 * 60 * 1000;
 export const BUSY_RETRY_AFTER_SECONDS = 5;
 
@@ -30,11 +30,10 @@ export function parseDailyMessageCap(value: string | undefined): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_DAILY_MESSAGE_CAP;
 }
 
-/** Parse a dollar amount like "1.50" into micro-USD. */
-export function parseDailySpendCapMicro(value: string | undefined): number {
-  const parsed = Number.parseFloat(value ?? "");
-  if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_DAILY_SPEND_CAP_MICRO;
-  return Math.round(parsed * 1_000_000);
+/** Parse the daily token cap. Bad input falls back to the default. */
+export function parseDailyTokenCap(value: string | undefined): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_DAILY_TOKEN_CAP;
 }
 
 export interface SessionRowState {
@@ -54,11 +53,11 @@ export interface BeginTurnCheck {
   session: SessionRowState | null;
   ipMessagesToday: number;
   globalMessagesToday: number;
-  globalSpendMicro: number;
-  globalReservedMicro: number;
-  reservationMicro: number;
+  globalTokens: number;
+  globalReservedTokens: number;
+  reservationTokens: number;
   dailyMessageCap: number;
-  dailySpendCapMicro: number;
+  dailyTokenCap: number;
 }
 
 export type CheckResult = { ok: true } | { ok: false; code: ErrorCode; retryAfter?: number };
@@ -85,22 +84,22 @@ export function checkBeginTurn(check: BeginTurnCheck): CheckResult {
   }
   if (check.ipMessagesToday >= MAX_MESSAGES_PER_IP_PER_DAY) return deny("daily_limit");
   if (check.globalMessagesToday >= check.dailyMessageCap) return deny("resting");
-  if (check.globalSpendMicro + check.globalReservedMicro + check.reservationMicro > check.dailySpendCapMicro) {
+  if (check.globalTokens + check.globalReservedTokens + check.reservationTokens > check.dailyTokenCap) {
     return deny("resting");
   }
   return OK;
 }
 
-/** Settle one reservation against the real cost. Reserved never goes below 0. */
-export function settleSpend(
-  settledMicro: number,
-  reservedMicro: number,
-  reservationMicro: number,
-  actualMicro: number,
-): { settledMicro: number; reservedMicro: number } {
+/** Settle one reservation against the real token count. Reserved never goes below 0. */
+export function settleTokens(
+  settledTokens: number,
+  reservedTokens: number,
+  reservationTokens: number,
+  actualTokens: number,
+): { settledTokens: number; reservedTokens: number } {
   return {
-    settledMicro: settledMicro + Math.max(0, actualMicro),
-    reservedMicro: Math.max(0, reservedMicro - Math.max(0, reservationMicro)),
+    settledTokens: settledTokens + Math.max(0, actualTokens),
+    reservedTokens: Math.max(0, reservedTokens - Math.max(0, reservationTokens)),
   };
 }
 

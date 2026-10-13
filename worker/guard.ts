@@ -91,6 +91,26 @@ export function isSecFetchSiteOk(value: string | null): boolean {
 }
 
 /**
+ * Resolve the upstream model base URL. Returns the value without trailing
+ * slashes, or null when it is missing, unparsable, or not https (http is
+ * allowed in dev only, for a local proxy).
+ */
+export function resolveUpstreamBase(value: string | undefined, dev: boolean): string | null {
+  if (value === undefined) return null;
+  const stripped = value.trim().replace(/\/+$/, "");
+  if (stripped === "") return null;
+  let url: URL;
+  try {
+    url = new URL(stripped);
+  } catch {
+    return null;
+  }
+  if (url.protocol === "https:") return stripped;
+  if (url.protocol === "http:" && dev) return stripped;
+  return null;
+}
+
+/**
  * Read the valid page paths from knowledge text lines in the form
  * `PAGE <path> | <title>`. Duplicates are removed, order is kept.
  */

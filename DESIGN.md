@@ -57,8 +57,8 @@ never looks small. On phones it becomes a full-height sheet.
 
 ## Site agent
 
-The About composer is a small Claude agent (Claude Haiku 5.5) that answers questions
-about Serge only. A conversation opens inside the About pane like a thread: the
+The About composer is a small agent (GPT-6 Luna) that answers questions about Serge
+only. A conversation opens inside the About pane like a thread: the
 composer glides down, replies stream in word by word, and the agent can open a page,
 show the scenery, or draft an email the visitor sends themselves. Limits and bot
 protection are in the README.

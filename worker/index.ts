@@ -1,7 +1,13 @@
 // Site-agent Worker entry. Serves the static site through ASSETS and
 // handles three /api/agent routes. Every other /api path is a 404.
 
-import Anthropic from "@anthropic-ai/sdk";
+import {
+  estimateTokens,
+  reservationTokens,
+  resolveModel,
+  usageTokens,
+  type AllowedModel,
+} from "./budget.ts";
 import {
   isOriginAllowed,
   isSecFetchSiteOk,
@@ -10,16 +16,16 @@ import {
   MAX_BODY_BYTES,
   normalizeMessage,
   parseSitePaths,
+  resolveUpstreamBase,
 } from "./guard.ts";
-import { parseDailyMessageCap, parseDailySpendCapMicro, utcDay } from "./limits.ts";
+import { parseDailyMessageCap, parseDailyTokenCap, utcDay } from "./limits.ts";
 import {
-  costMicroUsd,
-  estimateTokens,
-  resolveModel,
-  worstCaseMicroUsd,
-  type AllowedModel,
-} from "./pricing.ts";
-import { buildSystemBlock, REFUSAL_FALLBACK_TEXT } from "./prompt.ts";
+  ChatStreamAccumulator,
+  MAX_REPLY_CHARS,
+  SseDataParser,
+  truncateReplyDelta,
+} from "./openai-stream.ts";
+import { buildSystemPrompt, REFUSAL_FALLBACK_TEXT } from "./prompt.ts";
 import { encodeSseBytes } from "./sse.ts";
 import { actionNote, buildTools, validateToolAction } from "./tools.ts";
 import type { Env, ErrorCode, GateApi, HistoryMessage } from "./types.ts";
@@ -227,7 +233,9 @@ interface StreamChatArgs {
   model: AllowedModel;
   knowledge: string;
   paths: string[];
-  reservationMicro: number;
+  reservationTokensValue: number;
+  upstreamBase: string;
+  upstreamKey: string;
 }
 
 function streamChat(args: StreamChatArgs): Response {
@@ -238,96 +246,145 @@ function streamChat(args: StreamChatArgs): Response {
       let assistantText = "";
       let historyNote = "";
       let stopReason = "unknown";
-      let actualMicro = 0;
+      let tokensCharged = 0;
       let reason = "ok";
       let abortKind: "" | "timeout" | "client_abort" = "";
       let sawStreamEvent = false;
-      const usage = {
-        input_tokens: 0,
-        output_tokens: 0,
-        cache_creation_input_tokens: 0,
-        cache_read_input_tokens: 0,
-      };
-      const client = new Anthropic({ apiKey: args.env.ANTHROPIC_API_KEY, maxRetries: 1 });
-      const messages: Anthropic.MessageParam[] = [
-        ...args.history.map((entry) => ({ role: entry.role, content: entry.content })),
-        { role: "user", content: args.message },
-      ];
-      const claudeStream = client.messages.stream({
-        model: args.model,
-        max_tokens: MAX_TOKENS,
-        output_config: { effort: "low" },
-        system: buildSystemBlock(args.knowledge),
-        tools: buildTools(args.paths),
-        messages,
-      });
-      abortUpstream = () => claudeStream.abort();
+      let replyCapped = false;
+      let upstreamStatus: number | null = null;
+      const accumulator = new ChatStreamAccumulator();
+      const upstream = new AbortController();
+      abortUpstream = () => upstream.abort();
       const timer = setTimeout(() => {
         abortKind = "timeout";
-        claudeStream.abort();
+        upstream.abort();
       }, TURN_TIMEOUT_MS);
       const onClientAbort = (): void => {
         abortKind = "client_abort";
-        claudeStream.abort();
+        upstream.abort();
       };
       args.requestSignal.addEventListener("abort", onClientAbort);
       try {
-        for await (const event of claudeStream) {
-          sawStreamEvent = true;
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            assistantText += event.delta.text;
-            controller.enqueue(encodeSseBytes("text", { delta: event.delta.text }));
+        const response = await fetch(`${args.upstreamBase}/chat/completions`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${args.upstreamKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: args.model,
+            stream: true,
+            stream_options: { include_usage: true },
+            reasoning_effort: "low",
+            parallel_tool_calls: false,
+            tool_choice: "auto",
+            max_completion_tokens: MAX_TOKENS,
+            messages: [
+              { role: "system", content: buildSystemPrompt(args.knowledge) },
+              ...args.history.map((entry) => ({ role: entry.role, content: entry.content })),
+              { role: "user", content: args.message },
+            ],
+            tools: buildTools(args.paths),
+          }),
+          signal: upstream.signal,
+        });
+        if (!response.ok) {
+          upstreamStatus = response.status;
+          try {
+            await response.text();
+          } catch {
+            // Discard only. The body is never logged or sent to the client.
+          }
+          throw new Error("upstream_non2xx");
+        }
+        if (response.body === null) throw new Error("upstream_no_body");
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        const parser = new SseDataParser();
+        const applyPayloads = (payloads: unknown[]): void => {
+          for (const payload of payloads) {
+            if (replyCapped) return;
+            sawStreamEvent = true;
+            const applied = accumulator.apply(payload);
+            if (applied.textDelta === "") continue;
+            const cappedResult = truncateReplyDelta(
+              assistantText.length,
+              applied.textDelta,
+              MAX_REPLY_CHARS,
+            );
+            if (cappedResult.emit !== "") {
+              assistantText += cappedResult.emit;
+              controller.enqueue(encodeSseBytes("text", { delta: cappedResult.emit }));
+            }
+            if (cappedResult.capped) replyCapped = true;
+          }
+        };
+        while (!replyCapped && !parser.done) {
+          const next = await reader.read();
+          if (next.done) break;
+          applyPayloads(parser.feed(decoder.decode(next.value, { stream: true })));
+        }
+        if (!replyCapped && !parser.done) {
+          applyPayloads(parser.feed(decoder.decode()));
+          applyPayloads(parser.flush());
+        }
+        if (replyCapped) {
+          upstream.abort();
+          try {
+            await reader.cancel();
+          } catch {
+            // The upstream is already gone.
           }
         }
-        const final = await claudeStream.finalMessage();
-        stopReason = final.stop_reason ?? "unknown";
-        usage.input_tokens = final.usage.input_tokens ?? 0;
-        usage.output_tokens = final.usage.output_tokens;
-        usage.cache_creation_input_tokens = final.usage.cache_creation_input_tokens ?? 0;
-        usage.cache_read_input_tokens = final.usage.cache_read_input_tokens ?? 0;
-        actualMicro = costMicroUsd(args.model, final.usage);
-        if (assistantText === "") {
-          assistantText = final.content
-            .filter((block) => block.type === "text")
-            .map((block) => block.text)
-            .join("");
-          if (assistantText !== "") {
-            controller.enqueue(encodeSseBytes("text", { delta: assistantText }));
+        stopReason = replyCapped ? "reply_cap" : (accumulator.finishReason ?? "unknown");
+        if (!replyCapped) {
+          let action: ReturnType<typeof validateToolAction> = null;
+          const toolCall = accumulator.firstValidToolCall();
+          if (toolCall !== null) {
+            let input: unknown = null;
+            let parsed = true;
+            try {
+              input = toolCall.arguments === "" ? {} : JSON.parse(toolCall.arguments);
+            } catch {
+              parsed = false;
+            }
+            if (parsed) action = validateToolAction(toolCall.name, input, args.paths);
           }
-        }
-        if (stopReason === "refusal") {
-          reason = "refusal";
-          if (assistantText === "") {
+          if (action !== null) {
+            controller.enqueue(encodeSseBytes("action", action));
+            historyNote = actionNote(action);
+          } else if (
+            assistantText === "" &&
+            (accumulator.refusal !== "" || accumulator.finishReason === "content_filter")
+          ) {
+            reason = "refusal";
             assistantText = REFUSAL_FALLBACK_TEXT;
             controller.enqueue(encodeSseBytes("text", { delta: assistantText }));
           }
         }
-        for (const block of final.content) {
-          if (block.type === "tool_use") {
-            const action = validateToolAction(block.name, block.input, args.paths);
-            if (action !== null) {
-              controller.enqueue(encodeSseBytes("action", action));
-              historyNote = actionNote(action);
-            }
-            break;
-          }
+        if (accumulator.usage !== null) {
+          const charged = usageTokens(accumulator.usage);
+          tokensCharged =
+            charged === 0 && accumulator.text !== "" ? args.reservationTokensValue : charged;
+        } else {
+          tokensCharged = sawStreamEvent ? args.reservationTokensValue : 0;
         }
         controller.enqueue(
           encodeSseBytes("done", { remaining: args.remaining, stop: stopReason }),
         );
-      } catch (error) {
+      } catch {
         if (abortKind !== "") {
           reason = abortKind;
-        } else if (error instanceof Anthropic.RateLimitError) {
+        } else if (upstreamStatus === 429) {
           reason = "upstream_rate_limit";
-        } else if (error instanceof Anthropic.APIError) {
-          reason = `upstream_${error.status ?? "error"}`;
+        } else if (upstreamStatus !== null) {
+          reason = `upstream_${upstreamStatus}`;
         } else {
           reason = "upstream_error";
         }
-        // If generation may have billed, settle at the reservation so the
+        // If generation may have run, settle at the reservation so the
         // daily cap stays honest. Clean pre-stream errors settle at zero.
-        actualMicro = sawStreamEvent ? args.reservationMicro : 0;
+        tokensCharged = sawStreamEvent ? args.reservationTokensValue : 0;
         try {
           controller.enqueue(
             encodeSseBytes("error", {
@@ -348,7 +405,7 @@ function streamChat(args: StreamChatArgs): Response {
               now: Date.now(),
               userText: args.message,
               assistantText: [assistantText, historyNote].filter((t) => t !== "").join(" "),
-              actualMicro,
+              actualTokens: tokensCharged,
             })
             .catch(() => undefined),
         );
@@ -358,11 +415,10 @@ function streamChat(args: StreamChatArgs): Response {
             day: utcDay(Date.now()),
             model: args.model,
             stop: stopReason,
-            input_tokens: usage.input_tokens,
-            output_tokens: usage.output_tokens,
-            cache_creation_input_tokens: usage.cache_creation_input_tokens,
-            cache_read_input_tokens: usage.cache_read_input_tokens,
-            cost_microusd: actualMicro,
+            prompt_tokens: accumulator.usage?.prompt_tokens ?? 0,
+            completion_tokens: accumulator.usage?.completion_tokens ?? 0,
+            cached_tokens: accumulator.usage?.cached_tokens ?? 0,
+            tokens_charged: tokensCharged,
             reason,
           }),
         );
@@ -394,9 +450,11 @@ async function handleChat(request: Request, env: Env, ctx: ExecutionContext): Pr
   if (!(await rateLimitOk(env.RL_CHAT, guard.ip))) {
     return jsonError("rate_limited", undefined, 60);
   }
-  if (env.ANTHROPIC_API_KEY === undefined || env.ANTHROPIC_API_KEY === "") {
+  const upstreamBase = resolveUpstreamBase(env.LLM_BASE_URL, env.DEV === "true");
+  if (upstreamBase === null || env.LLM_API_KEY === undefined || env.LLM_API_KEY === "") {
     return jsonError("resting");
   }
+  const upstreamKey = env.LLM_API_KEY;
   let knowledge: { text: string; paths: string[] };
   try {
     knowledge = await loadKnowledge(env);
@@ -404,20 +462,15 @@ async function handleChat(request: Request, env: Env, ctx: ExecutionContext): Pr
     return jsonError("upstream_error");
   }
   const model = resolveModel(env.MODEL);
-  const systemText = buildSystemBlock(knowledge.text)[0]?.text ?? knowledge.text;
-  const reservationMicro = worstCaseMicroUsd(
-    model,
-    estimateTokens(systemText) + 1500,
-    MAX_TOKENS,
-  );
+  const reservation = reservationTokens(estimateTokens(buildSystemPrompt(knowledge.text)) + 1500);
   const began = await gateStub(env).beginTurn({
     sessionId,
     ip: guard.ip,
     now: Date.now(),
     enabled: isEnabled(env),
     dailyMessageCap: parseDailyMessageCap(env.DAILY_MESSAGE_CAP),
-    dailySpendCapMicro: parseDailySpendCapMicro(env.DAILY_SPEND_CAP_USD),
-    reservationMicro,
+    dailyTokenCap: parseDailyTokenCap(env.DAILY_TOKEN_CAP),
+    reservationTokens: reservation,
   });
   if (!began.ok) return jsonError(began.code, undefined, began.retryAfter);
   return streamChat({
@@ -431,7 +484,9 @@ async function handleChat(request: Request, env: Env, ctx: ExecutionContext): Pr
     model,
     knowledge: knowledge.text,
     paths: knowledge.paths,
-    reservationMicro,
+    reservationTokensValue: reservation,
+    upstreamBase,
+    upstreamKey,
   });
 }
 
@@ -458,8 +513,9 @@ export default {
       if (request.method !== "GET") return methodNotAllowed("GET");
       const enabled =
         isEnabled(env) &&
-        env.ANTHROPIC_API_KEY !== undefined &&
-        env.ANTHROPIC_API_KEY !== "" &&
+        resolveUpstreamBase(env.LLM_BASE_URL, env.DEV === "true") !== null &&
+        env.LLM_API_KEY !== undefined &&
+        env.LLM_API_KEY !== "" &&
         env.TURNSTILE_SECRET !== undefined &&
         env.TURNSTILE_SECRET !== "";
       return jsonOk({ enabled, model: resolveModel(env.MODEL) }, "public, max-age=60");

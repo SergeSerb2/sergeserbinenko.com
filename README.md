@@ -110,7 +110,9 @@ The pages already reference all three.
 
 ## Site agent
 
-A small Claude-powered agent answers questions about Serge and his work.
+A small agent answers questions about Serge and his work. It runs on
+GPT-6 Luna through a self-hosted [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
+instance on Railway, which exposes an OpenAI-compatible Chat Completions API.
 The Worker in `worker/` serves the static site and three API routes
 (`POST /api/agent/session`, `POST /api/agent/chat`, `GET /api/agent/status`).
 Its knowledge is `/agent-context.txt`, built at build time from the content
@@ -121,31 +123,36 @@ The agent is locked down on purpose. Messages are at most 280 characters.
 A Turnstile widget (already created; site key in `wrangler.jsonc` `vars`)
 gates every session. Sessions last 30 minutes with at most 10 messages.
 Each IP gets at most 6 sessions and 30 messages per UTC day. Global caps
-live in `wrangler.jsonc` `vars` (`DAILY_MESSAGE_CAP`, `DAILY_SPEND_CAP_USD`),
+live in `wrangler.jsonc` `vars` (`DAILY_MESSAGE_CAP`, `DAILY_TOKEN_CAP`),
 and Workers Rate Limiting bindings cap chat at 4/minute and sessions at
-3/minute per IP. A `Gate` Durable Object enforces the caps and tracks real
-spend from token usage, with a worst-case reservation per turn so a burst
-cannot overshoot the spend cap by much. The system prompt (`worker/prompt.ts`)
-only allows questions about Serge, his work, and this site.
+3/minute per IP. A `Gate` Durable Object enforces the caps and counts real
+tokens from each reply's usage, with a worst-case reservation per turn so a
+burst cannot overshoot the token cap by much. The proxy does not enforce
+output limits, so the Worker cuts any reply longer than 900 characters
+itself. The system prompt (`worker/prompt.ts`) only allows questions about
+Serge, his work, and this site.
 
 Operator settings (all in `wrangler.jsonc` `vars`, then redeploy):
 
-- `MODEL` — `claude-haiku-5-5` (default) or `claude-sonnet-5-5`. Any other
-  value falls back to Haiku.
+- `MODEL` — `gpt-6-luna` (default) or `gpt-5.6-luna`. Any other value falls
+  back to `gpt-6-luna`.
 - `AGENT_ENABLED` — kill switch. Set to anything but `"true"` to stop the
   agent. `GET /api/agent/status` then reports `enabled: false`.
-- `DAILY_MESSAGE_CAP` and `DAILY_SPEND_CAP_USD` — global daily caps.
+- `DAILY_MESSAGE_CAP` and `DAILY_TOKEN_CAP` — global daily caps. The token
+  cap protects the subscription quota that the proxy shares with other work.
 
-Before the first deploy, set the two Worker secrets (never put them in the
-repo or in `vars`):
+Set three Worker secrets (never put them in the repo or in `vars`; the proxy
+URL stays private too):
 
 ```sh
-pnpm exec wrangler secret put ANTHROPIC_API_KEY
+pnpm exec wrangler secret put LLM_BASE_URL   # https://<proxy host>/v1
+pnpm exec wrangler secret put LLM_API_KEY    # a CLIProxyAPI client key
 pnpm exec wrangler secret put TURNSTILE_SECRET
 ```
 
-For local development, put `ANTHROPIC_API_KEY`, `DEV=true`, and Cloudflare's
-**test** Turnstile secret `TURNSTILE_SECRET=1x0000000000000000000000000000000AA` into
+For local development, put `LLM_BASE_URL`, `LLM_API_KEY`, `DEV=true`, and
+Cloudflare's **test** Turnstile secret
+`TURNSTILE_SECRET=1x0000000000000000000000000000000AA` into
 `.dev.vars` (gitignored). On localhost the browser uses the matching test site key,
 and a production secret would reject those tokens. Then run `pnpm build`, then
 `pnpm exec wrangler dev --local-upstream localhost:8787` and open

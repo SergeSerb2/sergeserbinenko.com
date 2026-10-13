@@ -8,25 +8,26 @@ test("buildTools defines three strict tools with the path enum", () => {
   const tools = buildTools(PATHS);
   assert.equal(tools.length, 3);
   assert.deepEqual(
-    tools.map((tool) => tool.name),
+    tools.map((tool) => tool.function.name),
     ["open_page", "show_scenery", "draft_email"],
   );
   for (const tool of tools) {
-    assert.equal(tool.strict, true);
-    assert.equal(tool.input_schema.type, "object");
-    assert.equal(tool.input_schema.additionalProperties, false);
+    assert.equal(tool.type, "function");
+    assert.equal(tool.function.strict, true);
+    assert.equal(tool.function.parameters.type, "object");
+    assert.equal(tool.function.parameters.additionalProperties, false);
   }
   const openPage = tools[0];
-  assert.deepEqual(openPage?.input_schema.required, ["path"]);
-  const properties = openPage?.input_schema.properties as { path: { enum: string[] } };
+  assert.deepEqual(openPage?.function.parameters.required, ["path"]);
+  const properties = openPage?.function.parameters.properties as { path: { enum: string[] } };
   assert.deepEqual(properties.path.enum, PATHS);
   const email = tools[2];
-  assert.deepEqual(email?.input_schema.required, ["subject", "body"]);
+  assert.deepEqual(email?.function.parameters.required, ["subject", "body"]);
 });
 
 test("buildTools falls back to the home path when no paths are known", () => {
   const tools = buildTools([]);
-  const properties = tools[0]?.input_schema.properties as { path: { enum: string[] } };
+  const properties = tools[0]?.function.parameters.properties as { path: { enum: string[] } };
   assert.deepEqual(properties.path.enum, ["/"]);
 });
 
