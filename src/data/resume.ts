@@ -33,17 +33,17 @@ export const experience: Role[] = [
     stack: ["Python", "TypeScript", "Speech-to-text", "LLMs", "Google Cloud Run"],
   },
   {
-    title: "Chief Technology Officer",
-    org: "PartyMeIN",
-    start: "2023",
-    end: "2024",
-    summary: "First engineer and CTO of a Vancouver start-up. Built the iOS app from the ground up.",
+    title: "Software Developer",
+    org: "Sapphire4U",
+    start: "2016 — 2019, 2023",
+    end: "Now",
+    summary: "Family software studio working on freelance projects.",
     points: [
-      "Sole developer of the first public release, written in Swift.",
-      "Owned design, core features, performance, and the backend.",
-      "The app finds the best time for an event from friends' imported calendars.",
+      "Admin and instructor console for the Canadian Flight Centre.",
+      "Automatic Excel reports from aircraft status and flight-lesson data.",
+      "Chrome extension that automated financial-report downloads for Merchant Growth.",
     ],
-    stack: ["Swift", "SwiftUI", "JavaScript"],
+    stack: ["JavaScript", "PHP", "MySQL", "Yii"],
   },
   {
     title: "Software Engineer (Contract)",
@@ -69,19 +69,6 @@ export const experience: Role[] = [
       "Built the team's shift scheduler as a side project, used by a department of 30+.",
     ],
     stack: ["Node.js", "MS SQL", "XML"],
-  },
-  {
-    title: "Software Developer",
-    org: "Sapphire4U",
-    start: "2016",
-    end: "2019",
-    summary: "Family software studio working on freelance projects.",
-    points: [
-      "Admin and instructor console for the Canadian Flight Centre.",
-      "Automatic Excel reports from aircraft status and flight-lesson data.",
-      "Chrome extension that automated financial-report downloads for Merchant Growth.",
-    ],
-    stack: ["JavaScript", "PHP", "MySQL", "Yii"],
   },
 ];
 
