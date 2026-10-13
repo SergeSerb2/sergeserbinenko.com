@@ -24,6 +24,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.5
+      tsc-rs:
+        specifier: 0.5.0
+        version: 0.5.0
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
@@ -804,6 +807,42 @@ packages:
   '@speed-highlight/core@1.2.24':
     resolution: {integrity: sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==}
 
+  '@tsc-rs/darwin-arm64@0.5.0':
+    resolution: {integrity: sha512-9q3RbKr7hnV+R8e2VnwCZAKAXi8ATrzpxbfRh40Avz86gUYt2UjHmf3Vd7GlXgcIox/q6+coCnaqSsfWRb3a6A==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@tsc-rs/darwin-x64@0.5.0':
+    resolution: {integrity: sha512-F+hS0P+QE2McRuIBu2NY0tu4+g6IqbBLuHXvYuaR7R835Pfer5IypaZRLDlQNA9BXCg8DIs8nYiIKtiHDuL5xg==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@tsc-rs/linux-arm64@0.5.0':
+    resolution: {integrity: sha512-rbXN6pKIxxo3V/Cn1EJ1H/rNq4Kz7etU7y7z4S5bTLYwq9xEL0sDZrrt1DGwFPoj9yun9OFgUpvjYp4CJqCRFA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@tsc-rs/linux-x64@0.5.0':
+    resolution: {integrity: sha512-tS89S3SI5nTY5rKacOfYIvLp9IlzhkakuD2cjnKsJxrxy+LHVrEjnM431MDPz7LCMXXklZfq4ew9MuNeaBANeQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [linux]
+
+  '@tsc-rs/win32-arm64@0.5.0':
+    resolution: {integrity: sha512-969KYpAnsV7IFVU1e+/zhQVzVMhGZVBqIFQIpDQFh0ZvOriZLaLGapI85uqCMx+V5iwXQCyNesb7N6hfe/hobQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@tsc-rs/win32-x64@0.5.0':
+    resolution: {integrity: sha512-hJkWIczZMbb9xWYtRa5Tna6bToJ5y9kBz3itfMlDZ2gE76YSZk4RV9ucDLJ1aCp52vBEBCUdqelPCnRxdYwyNA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [win32]
+
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
@@ -1519,6 +1558,11 @@ packages:
 
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
+
+  tsc-rs@0.5.0:
+    resolution: {integrity: sha512-dxWhPG/2Xs5+xHvIuxIU4mZw46Mpre24WyVuR3JjQj+449PdUN6AbVFoGs5xolOcFnKKVzW63n52QcaprFdlFw==}
+    engines: {node: '>=16.20.0'}
+    hasBin: true
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
@@ -2476,6 +2520,24 @@ snapshots:
 
   '@speed-highlight/core@1.2.24': {}
 
+  '@tsc-rs/darwin-arm64@0.5.0':
+    optional: true
+
+  '@tsc-rs/darwin-x64@0.5.0':
+    optional: true
+
+  '@tsc-rs/linux-arm64@0.5.0':
+    optional: true
+
+  '@tsc-rs/linux-x64@0.5.0':
+    optional: true
+
+  '@tsc-rs/win32-arm64@0.5.0':
+    optional: true
+
+  '@tsc-rs/win32-x64@0.5.0':
+    optional: true
+
   '@tybys/wasm-util@0.10.4':
     dependencies:
       tslib: 2.8.1
@@ -3299,6 +3361,15 @@ snapshots:
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
+
+  tsc-rs@0.5.0:
+    optionalDependencies:
+      '@tsc-rs/darwin-arm64': 0.5.0
+      '@tsc-rs/darwin-x64': 0.5.0
+      '@tsc-rs/linux-arm64': 0.5.0
+      '@tsc-rs/linux-x64': 0.5.0
+      '@tsc-rs/win32-arm64': 0.5.0
+      '@tsc-rs/win32-x64': 0.5.0
 
   tslib@2.8.1: {}
 
