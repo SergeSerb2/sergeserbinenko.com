@@ -434,13 +434,21 @@ a.chip { display: inline-flex; align-items: center; text-decoration: none; }
 }
 .card:hover { background: rgba(255, 255, 255, .62); translate: 0 -5px; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .9), 0 0 0 .5px rgba(15, 25, 35, .06), 0 22px 36px -18px rgba(15, 25, 35, .38); }
 .card:active { scale: .97; }
-/* Glare follows the pointer across the card. */
+/* Glare follows the pointer across the card: a fixed highlight moved with
+   translate only. It lands under the pointer on entry, then eases toward
+   each new position over 160ms, so it trails the hand slightly and catches
+   up when it stops. The host's overflow clips it to the rounded corners. */
 .card::before, [data-glare]::before {
-  content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(240px circle at var(--gx, 50%) var(--gy, 0%), rgba(255, 255, 255, .5), transparent 62%);
-  mix-blend-mode: soft-light; opacity: 0; transition: opacity 300ms;
+  --glare-follow: 0ms;
+  content: ""; position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none;
+  width: 480px; height: 480px; margin: -240px 0 0 -240px;
+  background: radial-gradient(circle closest-side, rgba(255, 255, 255, .5), transparent 62%);
+  translate: var(--gx, 0px) var(--gy, 0px);
+  mix-blend-mode: soft-light; opacity: 0;
+  transition: opacity 300ms, translate var(--glare-follow) ease-out;
 }
 .card.is-hover::before, [data-glare].is-hover::before { opacity: 1; }
+.card.is-tracking::before, [data-glare].is-tracking::before { --glare-follow: 160ms; }
 .card .strip {
   position: relative; display: block; height: 80px; border-radius: 11px; overflow: hidden;
   background-size: cover; background-position: center;
