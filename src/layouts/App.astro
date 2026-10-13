@@ -35,10 +35,10 @@ const projects = allProjects
   .sort((a, b) => a.data.order - b.data.order);
 
 const threads: Thread[] = [
-  { id: "about", title: "About", href: "/", scene: "tofino", group: "Pinned", q: `about ${scenes.tofino.place}`.toLowerCase() },
-  { id: "resume", title: "Résumé", href: "/resume", scene: "moraine", group: "Pinned", q: `résumé resume ${scenes.moraine.place}`.toLowerCase() },
-  { id: "contact", title: "Contact", href: "/contact", scene: "lofoten", group: "Pinned", q: `contact ${scenes.lofoten.place}`.toLowerCase() },
-  { id: "projects", title: "All projects", href: "/projects", scene: "skye", group: "Projects", meta: String(projects.length), q: `all projects work ${scenes.skye.place}`.toLowerCase() },
+  { id: "about", title: "About", href: "/", scene: "tofino", group: "Pinned", q: "about" },
+  { id: "resume", title: "Résumé", href: "/resume", scene: "moraine", group: "Pinned", q: "résumé resume" },
+  { id: "contact", title: "Contact", href: "/contact", scene: "lofoten", group: "Pinned", q: "contact" },
+  { id: "projects", title: "All projects", href: "/projects", scene: "skye", group: "Projects", meta: String(projects.length), q: "all projects work" },
   ...projects.map((p) => ({
     id: p.id,
     title: p.data.title,
@@ -46,7 +46,7 @@ const threads: Thread[] = [
     scene: p.data.scene as SceneId,
     group: "Projects" as const,
     meta: firstYear(p.data.year),
-    q: `${p.data.title} ${p.data.stack.join(" ")} ${p.data.tagline} ${scenes[p.data.scene as SceneId].place}`.toLowerCase(),
+    q: `${p.data.title} ${p.data.stack.join(" ")} ${p.data.tagline}`.toLowerCase(),
   })),
 ];
 
@@ -90,12 +90,16 @@ const paneAnim = { forwards: panePair, backwards: panePair };
   <div class="backdrop" aria-hidden="true" transition:persist style={`background:${scene.color}`}>
     <div class="scene is-on" id="sceneA" style={`background-image:url('${backdropUrl}');--focal:${scene.focal};z-index:2`}></div>
     <div class="scene" id="sceneB"></div>
+    <canvas class="ambient" aria-hidden="true"></canvas>
   </div>
 
-  <figure class="caption" id="caption" aria-live="polite" transition:persist>
-    <div class="caption-place" id="capPlace">{scene.place}</div>
-    <div class="caption-credit">Photo by <a id="capWho" href={photographerHref(scene)} target="_blank" rel="noopener">{scene.photographer}</a> on <a href={unsplashHref} target="_blank" rel="noopener">Unsplash</a></div>
-  </figure>
+  <div class="credit" id="credit" role="contentinfo" aria-label="Photo credit" transition:persist>
+    <svg class="credit__icon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M2.5 5.5h2l1.2-1.8h4.6l1.2 1.8h2v7h-11z"/><circle cx="8" cy="9" r="2.3"/></svg>
+    <span class="credit__label">Photo</span>
+    <a class="credit__who" id="creditWho" href={photographerHref(scene)} target="_blank" rel="noopener">{scene.photographer}</a>
+    <span class="credit__sep" aria-hidden="true">/</span>
+    <a class="credit__src" href={unsplashHref} target="_blank" rel="noopener">Unsplash</a>
+  </div>
 
   <div class="peek-hint" aria-hidden="true" transition:persist>Click anywhere or press Esc to come back</div>
 
@@ -104,9 +108,9 @@ const paneAnim = { forwards: panePair, backwards: panePair };
 
     <section class="pane">
       <header class="titlebar">
-        <div class="crumbs"><span class="root">{site.name}</span><span class="sep">/</span><span class="here">{crumb}</span></div>
+        <nav class="crumbs" aria-label="Breadcrumb"><span class="root">{site.name}</span><span class="sep">/</span><span class="here">{crumb}</span></nav>
         <div class="tools">
-          <button class="icon-btn" type="button" data-action="peek" aria-label="Look at the place" title="Look at the place (P)">
+          <button class="icon-btn" type="button" data-action="peek" aria-label="Show the scenery" title="Show the scenery (P)">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2.5"/><path d="M2.2 11.4l3.6-3.7 2.6 2.6 1.9-1.8 3.6 3.4" stroke-linecap="round"/><circle cx="10.8" cy="5.9" r="1.1"/></svg>
           </button>
           <button class="icon-btn" type="button" data-action="copy" aria-label="Copy link to this thread" title="Copy link">
@@ -119,8 +123,8 @@ const paneAnim = { forwards: panePair, backwards: panePair };
       <nav class="pills" aria-label="Threads" transition:persist>
         {threads.map((t, i) => (
           <>
-            {i === 3 && <span class="pill div" aria-hidden="true"></span>}
-            <a class="pill" href={t.href} data-thread={t.id} data-scene={t.scene} aria-current={thread === t.id ? "page" : undefined} data-astro-prefetch><span class="thumb" style={`background-image:url('${photoSrc(scenes[t.scene], 64, 64)}')`}></span>{t.title}</a>
+            {i === 3 && <span class="pill div" style={`--i:${i}`} aria-hidden="true"></span>}
+            <a class="pill" style={`--i:${i}`} href={t.href} data-thread={t.id} data-scene={t.scene} aria-current={thread === t.id ? "page" : undefined} data-astro-prefetch><span class="thumb" style={`background-image:url('${photoSrc(scenes[t.scene], 64, 64)}')`}></span>{t.title}</a>
           </>
         ))}
       </nav>
@@ -128,6 +132,8 @@ const paneAnim = { forwards: panePair, backwards: panePair };
       <main class="view" id="main"><div class="view-inner" transition:name="pane" transition:animate={paneAnim}><slot /></div></main>
     </section>
   </div>
+
+  <div class="sr-only" aria-live="polite" id="agentLive"></div>
 
   <script>
     import "../scripts/app.ts";

@@ -1,4 +1,6 @@
 ---
+import { site } from "../data/site.ts";
+
 interface Chip {
   label: string;
   href: string;
@@ -9,15 +11,20 @@ interface Props {
   label: string;
   subject: string;
   chips: Chip[];
+  /** Chat with the site agent instead of opening a mail draft. */
+  agent?: boolean;
 }
-const { placeholder, label, subject, chips } = Astro.props;
+const { placeholder, label, subject, chips, agent = false } = Astro.props;
 ---
-<form class="composer" data-composer data-subject={subject}>
-  <textarea rows="2" placeholder={placeholder} aria-label={label} data-ask></textarea>
+{/* data-astro-reload: ClientRouter would otherwise turn every submit into a
+    GET navigation; app.ts handles the submit (mail or the site agent). */}
+<form class="composer" data-composer data-astro-reload data-subject={subject} data-agent={agent ? "" : undefined} data-sitekey={agent ? site.turnstileSiteKey : undefined}>
+  <textarea rows="2" placeholder={placeholder} aria-label={label} data-ask maxlength={agent ? 280 : undefined}></textarea>
   <div class="composer-row">
     {chips.map((chip) => (
       <a class="chip" href={chip.href} {...(chip.external ? { target: "_blank", rel: "noopener" } : {})}>{chip.label}{chip.external && <> &#8599;</>}</a>
     ))}
-    <button type="submit" class="send" aria-label="Send as an email"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11.5v-9M3 6l4-3.8L11 6"/></svg></button>
+    {agent && <span class="composer__count" aria-hidden="true"></span>}
+    <button type="submit" class="send" aria-label={agent ? "Send message" : "Send as an email"}><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11.5v-9M3 6l4-3.8L11 6"/></svg></button>
   </div>
 </form>

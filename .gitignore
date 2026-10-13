@@ -3,6 +3,7 @@ dist
 .astro
 .wrangler
 .env*
+.dev.vars*
 .DS_Store
 
 # Private research notes (project inventory names private repos and clients)

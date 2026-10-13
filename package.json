@@ -11,18 +11,20 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "typecheck": "astro sync && tsc-rs --noEmit -p tsconfig.json",
+    "typecheck": "astro sync && tsc-rs --noEmit -p tsconfig.json && tsc-rs --noEmit -p worker/tsconfig.json",
     "check": "pnpm typecheck && astro check",
-    "test": "node --test \"src/scripts/*.test.ts\"",
+    "test": "node --test \"src/scripts/*.test.ts\" \"worker/*.test.ts\"",
     "deploy": "astro build && wrangler deploy"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@astrojs/sitemap": "^3.7.0",
     "astro": "^7.3.0",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "@cloudflare/workers-types": "^5.20261012.1",
     "@types/node": "^22.0.0",
     "tsc-rs": "0.5.0",
     "typescript": "^5.9.0",
