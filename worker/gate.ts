@@ -205,6 +205,8 @@ export class Gate extends DurableObject<Env> implements GateApi {
       });
       if (!check.ok) return check;
       if (session === undefined) return { ok: false, code: "session_expired" };
+      // Taking over a stale lock: its reservation never settled.
+      this.releaseReservation(session);
       const userTurns = session.user_turns + 1;
       sql.exec(
         "UPDATE sessions SET busy = ?, user_turns = ?, reserved_micro = ? WHERE id = ?",
@@ -281,10 +283,32 @@ export class Gate extends DurableObject<Env> implements GateApi {
     });
   }
 
+  /**
+   * Give back a reservation that never settled (the Worker died mid-turn), so it
+   * stops counting against the daily spend cap. Charged to the day it was made.
+   */
+  private releaseReservation(session: Pick<SessionRow, "busy" | "reserved_micro">): void {
+    if (session.reserved_micro <= 0 || session.busy === null) return;
+    this.ctx.storage.sql.exec(
+      "UPDATE global_days SET reserved_microusd = MAX(0, reserved_microusd - ?) WHERE day = ?",
+      session.reserved_micro,
+      utcDay(session.busy),
+    );
+  }
+
   async alarm(): Promise<void> {
     const now = Date.now();
     const sql = this.ctx.storage.sql;
-    sql.exec("DELETE FROM sessions WHERE expires_at <= ?", now);
+    this.ctx.storage.transactionSync(() => {
+      const expired = sql
+        .exec<Pick<SessionRow, "busy" | "reserved_micro">>(
+          "SELECT busy, reserved_micro FROM sessions WHERE expires_at <= ? AND reserved_micro > 0",
+          now,
+        )
+        .toArray();
+      for (const session of expired) this.releaseReservation(session);
+      sql.exec("DELETE FROM sessions WHERE expires_at <= ?", now);
+    });
     const cutoffDay = utcDayMinus(now, 2);
     sql.exec("DELETE FROM ip_days WHERE day < ?", cutoffDay);
     sql.exec("DELETE FROM global_days WHERE day < ?", cutoffDay);

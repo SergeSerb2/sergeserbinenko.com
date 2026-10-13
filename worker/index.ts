@@ -21,7 +21,7 @@ import {
 } from "./pricing.ts";
 import { buildSystemBlock, REFUSAL_FALLBACK_TEXT } from "./prompt.ts";
 import { encodeSseBytes } from "./sse.ts";
-import { buildTools, validateToolAction } from "./tools.ts";
+import { actionNote, buildTools, validateToolAction } from "./tools.ts";
 import type { Env, ErrorCode, GateApi, HistoryMessage } from "./types.ts";
 
 export { Gate } from "./gate.ts";
@@ -236,6 +236,7 @@ function streamChat(args: StreamChatArgs): Response {
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       let assistantText = "";
+      let historyNote = "";
       let stopReason = "unknown";
       let actualMicro = 0;
       let reason = "ok";
@@ -304,7 +305,10 @@ function streamChat(args: StreamChatArgs): Response {
         for (const block of final.content) {
           if (block.type === "tool_use") {
             const action = validateToolAction(block.name, block.input, args.paths);
-            if (action !== null) controller.enqueue(encodeSseBytes("action", action));
+            if (action !== null) {
+              controller.enqueue(encodeSseBytes("action", action));
+              historyNote = actionNote(action);
+            }
             break;
           }
         }
@@ -343,7 +347,7 @@ function streamChat(args: StreamChatArgs): Response {
               sessionId: args.sessionId,
               now: Date.now(),
               userText: args.message,
-              assistantText,
+              assistantText: [assistantText, historyNote].filter((t) => t !== "").join(" "),
               actualMicro,
             })
             .catch(() => undefined),

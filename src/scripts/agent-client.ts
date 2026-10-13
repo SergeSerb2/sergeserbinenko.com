@@ -306,7 +306,9 @@ export async function loadTurnstile(siteKey: string): Promise<() => Promise<stri
         }
         if (container === null || widgetId === null) {
           container = document.createElement("div");
-          container.style.display = "none";
+          // Not display:none: if Turnstile ever asks for interaction it must be seen.
+          // The widget is invisible-mode, so normally nothing renders here.
+          container.style.cssText = "position:fixed;left:50%;bottom:72px;transform:translateX(-50%);z-index:60";
           document.documentElement.appendChild(container);
           widgetId = api.render(container, {
             sitekey: siteKey,

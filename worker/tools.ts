@@ -106,6 +106,23 @@ export function hasOnlyAllowedLinks(text: string): boolean {
 }
 
 /** Validate one tool call from the model. Returns null to drop the action. */
+/**
+ * A short first-person note about an action, stored in history so a follow-up
+ * like "tell me more about that page" still makes sense to the model.
+ */
+export function actionNote(action: { type: string; path?: string; subject?: string }): string {
+  switch (action.type) {
+    case "open_page":
+      return `I opened ${action.path ?? "a page"} for you.`;
+    case "show_scenery":
+      return "I showed you the scenery behind the window.";
+    case "draft_email":
+      return `I drafted an email to Serge${action.subject ? ` titled "${action.subject}"` : ""} for you to send.`;
+    default:
+      return "";
+  }
+}
+
 export function validateToolAction(
   name: string,
   input: unknown,
